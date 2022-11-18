@@ -5,6 +5,7 @@ import torch
 from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments, RobertaConfig, RobertaTokenizer, RobertaForSequenceClassification, BertTokenizer
 from load_data import *
 from utils.metric import *
+from models import *
 
 
 def train():
@@ -14,7 +15,7 @@ def train():
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
   # load dataset
-  train_dataset = load_data("NLP_dataset//train/train.csv")
+  train_dataset = load_data("./NLP_dataset/train/train.csv")
   # dev_dataset = load_data("../dataset/train/dev.csv") # validation용 데이터는 따로 만드셔야 합니다.
 
   train_label = label_to_num(train_dataset['label'].values)
@@ -32,11 +33,8 @@ def train():
 
   print(device)
   # setting model hyperparameter
-  model_config =  AutoConfig.from_pretrained(MODEL_NAME)
-  model_config.num_labels = 30
-
-  model =  AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
-  print(model.config)
+  
+  model =  auto_models.RE_Model(MODEL_NAME)
   model.parameters
   model.to(device)
   
