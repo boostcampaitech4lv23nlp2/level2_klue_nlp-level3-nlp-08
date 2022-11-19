@@ -2,6 +2,10 @@ import sklearn
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 import numpy as np
 import pickle as pickle
+import torch
+import torch.backends.cudnn as cudnn
+import random
+
 
 
 def klue_re_micro_f1(preds, labels):
@@ -62,4 +66,14 @@ def label_to_num(label):
     num_label.append(dict_label_to_num[v])
   
   return num_label
+
+def seed_fix():
+  torch.manual_seed(0)
+  torch.cuda.manual_seed(0)
+  torch.cuda.manual_seed_all(0)
+  np.random.seed(0)
+  cudnn.benchmark = False
+  cudnn.deterministic = True
+  random.seed(0)
+  print("succeed to fix the seed")
 

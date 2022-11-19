@@ -6,9 +6,12 @@ from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassifi
 from load_data import *
 from utils.metric import *
 from models import *
+from trainer import *
 
 
 def train():
+  # fixed seed
+  seed_fix()
   # load model and tokenizer
   # MODEL_NAME = "bert-base-uncased"
   MODEL_NAME = "klue/bert-base"
@@ -59,12 +62,14 @@ def train():
     eval_steps = 500,            # evaluation step.
     load_best_model_at_end = True 
   )
-  trainer = Trainer(
+  
+  trainer = RE_Trainer(
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
-    train_dataset=RE_train_dataset,         # training dataset
-    eval_dataset=RE_train_dataset,             # evaluation dataset
-    compute_metrics=compute_metrics         # define metrics function
+    train_dataset=RE_train_dataset,      # training dataset
+    eval_dataset=RE_train_dataset,       # evaluation dataset
+    loss_name = "focal",                   
+    compute_metrics=compute_metrics      # define metrics function
   )
 
   # train model
