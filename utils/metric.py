@@ -67,13 +67,13 @@ def label_to_num(label):
   
   return num_label
 
-def seed_fix():
-  torch.manual_seed(0)
-  torch.cuda.manual_seed(0)
-  torch.cuda.manual_seed_all(0)
-  np.random.seed(0)
+def seed_fix(num=42):
+  torch.manual_seed(num)
+  torch.cuda.manual_seed(num)
+  torch.cuda.manual_seed_all(num)
+  np.random.seed(num)
   cudnn.benchmark = False
   cudnn.deterministic = True
-  random.seed(0)
+  random.seed(num)
   print("succeed to fix the seed")
 

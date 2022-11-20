@@ -7,6 +7,9 @@ from load_data import *
 from utils.metric import *
 from models import *
 from trainer import *
+import yaml
+from omegaconf import OmegaConf
+import argparse
 
 
 def train():
@@ -14,11 +17,12 @@ def train():
   seed_fix()
   # load model and tokenizer
   # MODEL_NAME = "bert-base-uncased"
-  MODEL_NAME = "klue/bert-base"
+
+  MODEL_NAME = cfg.model.model_name #"klue/bert-base"
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
   # load dataset
-  train_dataset = load_data("./NLP_dataset/train/train.csv")
+  train_dataset = load_data(cfg.path.train_path)
   # dev_dataset = load_data("../dataset/train/dev.csv") # validation용 데이터는 따로 만드셔야 합니다.
 
   train_label = label_to_num(train_dataset['label'].values)
@@ -45,21 +49,21 @@ def train():
   # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
   training_args = TrainingArguments(
     output_dir='./results',          # output directory
-    save_total_limit=5,              # number of total save model.
-    save_steps=500,                 # model saving step.
-    num_train_epochs=20,              # total number of training epochs
-    learning_rate=5e-5,               # learning_rate
-    per_device_train_batch_size=16,  # batch size per device during training
-    per_device_eval_batch_size=16,   # batch size for evaluation
-    warmup_steps=500,                # number of warmup steps for learning rate scheduler
-    weight_decay=0.01,               # strength of weight decay
+    save_total_limit=cfg.train.save_total_limit,# number of total save model.
+    save_steps=cfg.train.save_steps,                 # model saving step.
+    num_train_epochs=cfg.train.max_epoch,              # total number of training epochs
+    learning_rate=cfg.train.learning_rate,               # learning_rate
+    per_device_train_batch_size= cfg.train.batch_size,  # batch size per device during training
+    per_device_eval_batch_size= cfg.train.batch_size,   # batch size for evaluation
+    warmup_steps=cfg.train.warmup_steps,                # number of warmup steps for learning rate scheduler
+    weight_decay= cfg.train.weight_decay,               # strength of weight decay
     logging_dir='./logs',            # directory for storing logs
-    logging_steps=100,              # log saving step.
+    logging_steps=cfg.train.logging_steps,              # log saving step.
     evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
                                 # `steps`: Evaluate every `eval_steps`.
                                 # `epoch`: Evaluate every end of epoch.
-    eval_steps = 500,            # evaluation step.
+    eval_steps = cfg.train.eval_steps,            # evaluation step.
     load_best_model_at_end = True 
   )
   
@@ -68,7 +72,7 @@ def train():
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
     eval_dataset=RE_train_dataset,       # evaluation dataset
-    loss_name = "focal",                   
+    loss_name = cfg.train.loss_name,                   
     compute_metrics=compute_metrics      # define metrics function
   )
 
@@ -80,5 +84,8 @@ def main():
   train()
 
 if __name__ == '__main__':
-
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--config',type=str,default='')
+  args , _ = parser.parse_known_args()
+  cfg = OmegaConf.load(f'./config/{args.config}.yaml')
   main()
