@@ -10,11 +10,16 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 
+def seed_everything(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
+
 def inference(model, tokenized_sent, device):
-  """
-    test dataset을 DataLoader로 만들어 준 후,
-    batch_size로 나눠 model이 예측 합니다.
-  """
   dataloader = DataLoader(tokenized_sent, batch_size=16, shuffle=False)
   model.eval()
   output_pred = []
@@ -37,11 +42,9 @@ def inference(model, tokenized_sent, device):
   return np.concatenate(output_pred).tolist(), np.concatenate(output_prob, axis=0).tolist()
 
 def num_to_label(label):
-  """
-    숫자로 되어 있던 class를 원본 문자열 라벨로 변환 합니다.
-  """
+
   origin_label = []
-  with open('dict_num_to_label.pkl', 'rb') as f:
+  with open('./NLP_dataset/dict_num_to_label.pkl', 'rb') as f:
     dict_num_to_label = pickle.load(f)
   for v in label:
     origin_label.append(dict_num_to_label[v])
@@ -49,20 +52,15 @@ def num_to_label(label):
   return origin_label
 
 def load_test_dataset(dataset_dir, tokenizer):
-  """
-    test dataset을 불러온 후,
-    tokenizing 합니다.
-  """
-  test_dataset = load_data(dataset_dir)
+  preprocess = Preprocess(dataset_dir, 'PUNCT')
+  test_dataset = preprocess.load_data(dataset_dir)
   test_label = list(map(int,test_dataset['label'].values))
   # tokenizing dataset
-  tokenized_test = tokenized_dataset(test_dataset, tokenizer)
+  tokenized_test, _ = preprocess.tokenized_dataset(test_dataset, tokenizer)
   return test_dataset['id'], tokenized_test, test_label
 
 def main(args):
-  """
-    주어진 dataset csv 파일과 같은 형태일 경우 inference 가능한 코드입니다.
-  """
+  seed_everything(42)
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
   # load tokenizer
   Tokenizer_NAME = "klue/bert-base"
@@ -71,6 +69,7 @@ def main(args):
   ## load my model
   MODEL_NAME = args.model_dir # model dir.
   model = AutoModelForSequenceClassification.from_pretrained(args.model_dir)
+  model.resize_token_embeddings(tokenizer.vocab_size + 6)
   model.parameters
   model.to(device)
 
