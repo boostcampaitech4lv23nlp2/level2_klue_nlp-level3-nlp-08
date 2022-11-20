@@ -4,6 +4,8 @@ path:
     test_path: ./NLP_dataset/train/train.csv # 수정 필요
     predict_path: ./NLP_dataset/test/test_data.csv
 
+exp:
+    exp_name : 'baseline_code'
 #data:
 #    shuffle: True
 #    augmentation: # adea, bt 등등

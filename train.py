@@ -21,6 +21,7 @@ from trainer import *
 import yaml
 from omegaconf import OmegaConf
 import argparse
+import wandb
 
 
 def train():
@@ -91,10 +92,13 @@ def train():
   )
 
   # train model
+  wandb.watch(model)
   trainer.train()
   model.save_pretrained('./best_model')
   
 def main():
+  wandb.init(project = 'lhJoon_exp',name=cfg.exp.exp_name,entity='boot4-nlp-08')
+  wandb.config = cfg
   train()
 
 if __name__ == '__main__':
