@@ -2,7 +2,18 @@ import pickle as pickle
 import os
 import pandas as pd
 import torch
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments, RobertaConfig, RobertaTokenizer, RobertaForSequenceClassification, BertTokenizer
+from transformers import (
+  AutoTokenizer,
+  AutoConfig, 
+  AutoModelForSequenceClassification, 
+  Trainer, 
+  TrainingArguments, 
+  RobertaConfig, 
+  RobertaTokenizer, 
+  RobertaForSequenceClassification, 
+  BertTokenizer,
+  get_scheduler
+)
 from load_data import *
 from utils.metric import *
 from models import *
@@ -64,7 +75,8 @@ def train():
                                 # `steps`: Evaluate every `eval_steps`.
                                 # `epoch`: Evaluate every end of epoch.
     eval_steps = cfg.train.eval_steps,            # evaluation step.
-    load_best_model_at_end = True 
+    load_best_model_at_end = True,
+    
   )
   
   trainer = RE_Trainer(
@@ -72,8 +84,10 @@ def train():
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
     eval_dataset=RE_train_dataset,       # evaluation dataset
-    loss_name = cfg.train.loss_name,                   
-    compute_metrics=compute_metrics      # define metrics function
+    loss_name = cfg.train.loss_name,
+    scheduler = cfg.train.scheduler,                   
+    compute_metrics=compute_metrics,      # define metrics function
+    num_training_steps = 3 * len(train_dataset)
   )
 
   # train model
