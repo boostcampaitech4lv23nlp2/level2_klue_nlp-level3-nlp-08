@@ -7,3 +7,5 @@ results
 config.yaml
 EDA/output/*
 *.csv
+playground.ipynb
+EDA/DataAugmentation
