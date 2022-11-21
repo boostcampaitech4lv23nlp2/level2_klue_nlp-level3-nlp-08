@@ -58,7 +58,7 @@ class Preprocess:
       if self.option == 'TOKEN': # Sub/Obj Entity 양 옆에 [SUB][/SUB] or [OBJ][/OBJ] 토큰 삽입
         if sub_i[0] < obj_i[0]:
             z = z[:sub_i[0]] + '[SUB]' + z[sub_i[0]:sub_i[1]+1] + '[/SUB]' + z[sub_i[1]+1:]
-            z = z[:obj_i[0]+11] + '[OBJ]' + z[obj_i[0]+11: bj_i[1]+12] + '[/OBJ]'+ z[obj_i[1]+12:]
+            z = z[:obj_i[0]+11] + '[OBJ]' + z[obj_i[0]+11: obj_i[1]+12] + '[/OBJ]'+ z[obj_i[1]+12:]
         else:
             z = z[:obj_i[0]] + '[OBJ]' + z[obj_i[0]: obj_i[1]+1] + '[/OBJ]'+ z[obj_i[1]+1:]
             z = z[:sub_i[0]+11] + '[SUB]'+ z[sub_i[0]+11: sub_i[1]+12] + '[/SUB]' + z[sub_i[1]+12:]
