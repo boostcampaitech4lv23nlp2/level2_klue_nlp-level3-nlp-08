@@ -5,20 +5,20 @@ path:
     predict_path: ./NLP_dataset/test/test_data.csv
 
 exp:
-    exp_name : 'baseline_code'
+    exp_name : 'baseline_code_for_inference.py'
 #data:
 #    shuffle: True
 #    augmentation: # adea, bt 등등
     
 model:
-    model_name: klue/roberta-small
+    model_name: klue/bert-base
     saved_name: base_model
 
 train:
     loss_name : 'CE'
     gpus: 1
-    batch_size: 16
-    max_epoch: 20
+    batch_size: 64
+    max_epoch: 10
     learning_rate: 5e-5
     logging_step: 1
     save_total_limit : 5 # number of total save model.
@@ -28,3 +28,7 @@ train:
     logging_steps : 100  # log saving step.
     eval_steps : 500 # evaluation step
     scheduler : 'linear' # linear OR cosine OR steplr
+
+test:
+    model_dir : ./predict/best_model
+    prediction : ./predict/best_model_submission.csv

@@ -94,8 +94,8 @@ def train():
   # train model
   wandb.watch(model)
   trainer.train()
-  model.save_pretrained('./best_model')
-  
+  torch.save(model.state_dict(),cfg.test.model_dir)  
+
 def main():
   wandb.init(project = 'lhJoon_exp',name=cfg.exp.exp_name,entity='boot4-nlp-08')
   wandb.config = cfg

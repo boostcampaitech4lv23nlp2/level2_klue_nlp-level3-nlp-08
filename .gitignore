@@ -8,3 +8,4 @@ config.yaml
 EDA/output/*
 *.ipynb
 *.csv
+predict
