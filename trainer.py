@@ -6,17 +6,24 @@ from loss import *
 class RE_Trainer(Trainer):
     def __init__(self, loss_name, 
                        scheduler,
-                       num_training_steps, 
+                       num_training_steps,model_type,
                        *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_name= loss_name
         self.scheduler = scheduler
         self.num_training_steps = num_training_steps
+        self.model_type = model_type
     def compute_loss(self, model, inputs, return_outputs=False):
         labels = inputs.get("labels")
         # forward pass
-        outputs = model(**inputs)
-        logits = outputs.get("logits")
+        if self.model_type == 'CNN':
+          inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask')}
+          outputs = model(**inputs)
+          logits = outputs
+        elif self.model_type == 'base':  
+          outputs = model(**inputs)
+          logits = outputs.get("logits")
+          
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
           loss_fct = nn.CrossEntropyLoss()

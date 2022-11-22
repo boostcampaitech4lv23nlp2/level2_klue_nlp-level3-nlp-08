@@ -72,7 +72,10 @@ def main(cfg):
 
   ## load my model
   MODEL_NAME = cfg.model.model_name # model dir.
-  model = auto_models.RE_Model(MODEL_NAME)
+  if cfg.model.type == 'base':
+    model = auto_models.RE_Model(MODEL_NAME)
+  elif cfg.model.type == 'CNN':
+    model = auto_models.CNN_Model(MODEL_NAME)
   best_state_dict= torch.load(cfg.test.model_dir)
   model.load_state_dict(best_state_dict)
   model.parameters
