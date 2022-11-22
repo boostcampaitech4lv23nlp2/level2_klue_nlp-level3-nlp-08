@@ -19,11 +19,11 @@ class RE_Trainer(Trainer):
         if self.model_type == 'CNN':
           inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask')}
           outputs = model(**inputs)
-          logits = outputs
+          logits = outputs.get("logits")
         elif self.model_type == 'base':  
           outputs = model(**inputs)
           logits = outputs.get("logits")
-          
+
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
           loss_fct = nn.CrossEntropyLoss()

@@ -44,8 +44,8 @@ def klue_re_auprc(probs, labels):
 
 def compute_metrics(pred):
   """ validation을 위한 metrics function """
-  labels = pred.label_ids
-  preds = pred.predictions.argmax(-1)
+  labels = pred.label_ids # 3240
+  preds = pred.predictions.argmax(-1) # 51 
   probs = pred.predictions
 
   # calculate accuracy using sklearn's function

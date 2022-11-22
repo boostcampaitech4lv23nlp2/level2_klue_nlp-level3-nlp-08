@@ -28,7 +28,10 @@ def inference(model, tokenized_sent, device):
           attention_mask=data['attention_mask'].to(device),
           token_type_ids=data['token_type_ids'].to(device)
           )
-    logits = outputs[0]
+    if cfg.model.type == 'CNN':
+      logits = outputs.get('logits')
+    elif cfg.model.type == 'base':
+      logits = outputs[0]
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
     logits = logits.detach().cpu().numpy()
     result = np.argmax(logits, axis=-1)

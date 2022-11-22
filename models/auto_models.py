@@ -27,9 +27,9 @@ class CNN_Model(nn.Module):
     def __init__(self,MODEL_NAME):
         super().__init__()
         self.MODEL_NAME = MODEL_NAME
-        self.model_config = AutoConfig.from_pretrained(self.MODEL_NAME)
+        self.model_config = AutoConfig.from_pretrained(self.MODEL_NAME) # hidden_size 
         self.plm = AutoModel.from_pretrained(self.MODEL_NAME)
-        self.cnn_layers = nn.ModuleList([nn.Conv1d(in_channels=self.model_config.hidden_size,out_channels=100,kernel_size=i) for i in range(2,8)])
+        self.cnn_layers = nn.ModuleList([nn.Conv1d(in_channels=self.model_config.hidden_size,out_channels=100,kernel_size=i) for i in range(2,8)]) # 2~7 리셉티브 필드. -> 조밀 부터 멀리까지
         self.pooling_layers = nn.ModuleList([nn.MaxPool1d(256-i+1) for i in range(2,8)])
         self.linear = nn.Linear(600,300)
         self.linear2 = nn.Linear(300,30)
@@ -38,19 +38,19 @@ class CNN_Model(nn.Module):
         inputs = {'input_ids':batch.get('input_ids'),'token_type_ids':batch.get('token_type_ids'),'attention_mask':batch.get('attention_mask')}
         y = self.plm(**inputs)
         y = y.last_hidden_state
-        y= y.transpose(1,2)
+        y= y.transpose(1,2)  # y  ==  bert 거쳐서 나온  결과물.
         tmp = []
         for i in range(len(self.cnn_layers)):
             t = torch.tanh(self.cnn_layers[i](y))
             t = self.pooling_layers[i](t)
             tmp.append(t)
 
-        y = torch.cat(tmp,axis=1).squeeze()
+        y = torch.cat(tmp,axis=1).squeeze() # (Batch , 600)
 
-        logits = self.linear(y)
-        logits = self.linear2(logits)
+        logits = self.linear(y) # (Batch, 300)
+        logits = self.linear2(logits) # (Batch,30)
 
-        return logits
+        return {'logits':logits}
 
         
 
