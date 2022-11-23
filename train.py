@@ -73,7 +73,7 @@ def train():
   elif cfg.model.type == "base":
     model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == "entity":
-    model = auto_models.EntityModel(cfg, MODEL_NAME)
+    model = auto_models.EntityModel(MODEL_NAME)
 
   model.parameters
   model.to(device)
