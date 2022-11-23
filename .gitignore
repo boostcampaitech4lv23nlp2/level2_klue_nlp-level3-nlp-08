@@ -9,3 +9,4 @@ EDA/output/*
 *.ipynb
 *.csv
 predict
+*.txt

@@ -62,7 +62,7 @@ def train():
   elif cfg.model.type == "base":
     model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == "entity":
-    model = auto_models.EntityModel(cfg,MODEL_NAME)
+    model = auto_models.EntityModel(cfg, MODEL_NAME)
 
   model.parameters
   model.to(device)
@@ -110,7 +110,8 @@ def train():
   torch.save(model.state_dict(),cfg.test.model_dir)  
 
 def main():
-  wandb.init(project = cfg.exp.project_name,name=cfg.exp.exp_name,entity='boot4-nlp-08')
+
+  wandb.init(project = cfg.exp.project_name, name=cfg.exp.exp_name, entity='boot4-nlp-08')
   wandb.config = cfg
   train()
 
