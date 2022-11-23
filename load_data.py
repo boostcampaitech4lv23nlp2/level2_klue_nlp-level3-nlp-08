@@ -91,27 +91,7 @@ class Preprocess:
         
     return num_label
   
-  def tokenized_dataset(self, data, tokenizer):
-    tokens= ['PER', 'LOC', 'POH', 'DAT', 'NOH', 'ORG']
-    tokenizer.add_tokens(tokens)
-    concat_entity = []
-    for sub_ent, obj_ent, sub_typ, obj_typ in zip(data['subject_entity'], data['object_entity'], data['subject_type'], data['object_type']):
-      temp =  '@*'+ sub_typ + '*' + sub_ent + '@ [SEP] #^' + obj_typ + '^' + obj_ent + '#'
-      concat_entity.append(temp)
-
-    tokenized_sentence= tokenizer(
-      concat_entity,
-      list(data['sentence']),
-      return_tensors= "pt",
-      padding= True,
-      truncation= True,
-      max_length= 256,
-      add_special_tokens= True,
-    )    
-
-    return tokenized_sentence, len(tokens)
-  
-  def entity_tokenized_dataset(self, dataset, tokenizer):
+  def tokenized_dataset(self, dataset, tokenizer):
 
     """ tokenizer에 따라 sentence를 tokenizing 합니다."""
     concat_entity = []
