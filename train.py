@@ -7,7 +7,18 @@ import numpy as np
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments, RobertaConfig, RobertaTokenizer, RobertaForSequenceClassification, BertTokenizer
 from load_data import *
+from augmentation import *
+import random
 
+seed = 2022
+def seed_everything(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -65,7 +76,16 @@ def label_to_num(label):
   
   return num_label
 
+def RD(dataset):
+  dataset = calculate_idx(dataset)
+  dataset = random_delete(dataset,0.3)
+
+  return dataset
+
 def train():
+  
+  aug_option = 'AEDA'
+  seed_everything(seed)
   # load model and tokenizer
   # MODEL_NAME = "bert-base-uncased"
   MODEL_NAME = "klue/bert-base"
@@ -78,6 +98,13 @@ def train():
   train_label = label_to_num(train_dataset['label'].values)
   # dev_label = label_to_num(dev_dataset['label'].values)
 
+  if aug_option == 'RD':
+    train_dataset = RD(train_dataset) #EDA(Random Delete 적용)
+  elif aug_option == 'AEDA':
+    train_dataset, train_label = aeda(train_dataset, train_label, 2) #AEDA 적용
+  else:
+    None
+    
   # tokenizing dataset
   tokenized_train = tokenized_dataset(train_dataset, tokenizer)
   # tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
