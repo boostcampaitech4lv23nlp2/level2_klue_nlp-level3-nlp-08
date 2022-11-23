@@ -7,3 +7,4 @@ results
 config.yaml
 EDA/output/*
 *.csv
+best_model
