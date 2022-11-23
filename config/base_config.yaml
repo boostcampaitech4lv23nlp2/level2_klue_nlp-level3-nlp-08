@@ -9,8 +9,6 @@ exp:
     project_name : mgexp # 변경 해야함!! 실험 공간 ex) Moongi_exp
 
 data:
-    aug_option : 'AEDA'
-    entity: True
     preprocess_option: 'PUNCT'
     
 model:
