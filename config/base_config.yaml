@@ -8,8 +8,14 @@ exp:
     exp_name : baseline
     project_name : lhJoon_exp
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
+>>>>>>> origin/new_baseline_lhj
+=======
+
+=======
+>>>>>>> origin/feature/baseline
 >>>>>>> origin/new_baseline_lhj
 #data:
 #    shuffle: True
