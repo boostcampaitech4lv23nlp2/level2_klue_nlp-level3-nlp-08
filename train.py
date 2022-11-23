@@ -15,7 +15,7 @@ from transformers import (
   get_scheduler
 )
 from load_data import *
-from augmentation import *
+from utils.augmentation import *
 import random
 from utils.metric import *
 from models import *
@@ -33,9 +33,7 @@ def train():
   seed_fix()
   # load model and tokenizer
   # MODEL_NAME = "bert-base-uncased"
-  aug_option = cfg.data.aug_option 
   MODEL_NAME = cfg.model.model_name #"klue/bert-base"
-  entity = cfg.data.entity #True/False
   preprocess_option = cfg.data.preprocess_option
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
   
@@ -47,21 +45,10 @@ def train():
 
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
-
-  if aug_option == 'RD':
-    train_dataset = RD(train_dataset) #EDA(Random Delete 적용)
-  elif aug_option == 'AEDA':
-    train_dataset, train_label = aeda(train_dataset, train_label, 2) #AEDA 적용
-  else:
-    None
     
   # tokenizing dataset
-  if entity:
-    tokenized_train = train_preprocess.entity_tokenized_dataset(train_dataset, tokenizer)
-    tokenized_dev = dev_preprocess.entity_tokenized_dataset(dev_dataset, tokenizer)
-  else:
-    tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer)
-    tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer)
+  tokenized_train = train_preprocess.entity_tokenized_dataset(train_dataset, tokenizer)
+  tokenized_dev = dev_preprocess.entity_tokenized_dataset(dev_dataset, tokenizer)
 
   # make dataset for pytorch.
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
