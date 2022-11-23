@@ -56,7 +56,7 @@ class CNN_Model(nn.Module):
 
 
 class EntityModel(nn.Module):
-    def __init__(self, cfg, MODEL_NAME):
+    def __init__(self,MODEL_NAME):
         super().__init__()
         self.MODEL_NAME = MODEL_NAME
         # plm 모델 설정
