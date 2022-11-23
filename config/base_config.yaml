@@ -7,6 +7,7 @@ path:
 exp:
     exp_name : baseline
     project_name : lhJoon_exp
+
 #data:
 #    shuffle: True
 #    augmentation: # adea, bt 등등

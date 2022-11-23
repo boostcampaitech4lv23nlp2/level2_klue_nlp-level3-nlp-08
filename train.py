@@ -44,6 +44,10 @@ def train():
   tokenized_train = tokenized_dataset(train_dataset, tokenizer)
   tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
+  
+  tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
+  tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
+
   # make dataset for pytorch.
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
   RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
@@ -52,10 +56,14 @@ def train():
 
   print(device)
   # setting model hyperparameter
+
   if cfg.model.type == "CNN":
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == "base":
     model =  auto_models.RE_Model(MODEL_NAME)
+  elif cfg.model.type == "entity":
+    model = auto_models.EntityModel(cfg,MODEL_NAME)
+
   model.parameters
   model.to(device)
   
@@ -108,7 +116,7 @@ def main():
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--config',type=str,default='')
+  parser.add_argument('--config',type=str,default='base_config')
   args , _ = parser.parse_known_args()
   cfg = OmegaConf.load(f'./config/{args.config}.yaml')
   main()

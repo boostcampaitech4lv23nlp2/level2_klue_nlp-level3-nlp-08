@@ -1,5 +1,5 @@
 from torch import nn
-from transformers import Trainer,get_scheduler,TrainingArguments
+from transformers import Trainer, get_scheduler, TrainingArguments
 from loss import *
 
 
@@ -13,16 +13,25 @@ class RE_Trainer(Trainer):
         self.scheduler = scheduler
         self.num_training_steps = num_training_steps
         self.model_type = model_type
+
     def compute_loss(self, model, inputs, return_outputs=False):
         labels = inputs.get("labels")
+
         # forward pass
         if self.model_type == 'CNN':
           inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask')}
           outputs = model(**inputs)
           logits = outputs.get("logits")
-        elif self.model_type == 'base':  
-          outputs = model(**inputs)
-          logits = outputs.get("logits")
+
+        elif self.model_type == 'base':
+            inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask'),'labels':inputs.get('labels')}
+            outputs = model(**inputs)
+            logits = outputs.get("logits")
+
+        elif self.model_type == 'entity':
+            outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'],
+                        attention_mask=inputs['attention_mask'], entity_ids=inputs['entity_ids'])
+            logits = outputs['outputs']
 
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
@@ -55,4 +64,4 @@ class RE_Trainer(Trainer):
         self.lr_scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=1080, gamma=0.5)
 
       return self.lr_scheduler
-    
+
