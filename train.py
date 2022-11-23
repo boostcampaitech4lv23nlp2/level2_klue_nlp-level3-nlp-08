@@ -41,10 +41,10 @@ def train():
   dev_label = label_to_num(dev_dataset['label'].values)
 
   # tokenizing dataset
-
   tokenized_train = tokenized_dataset(train_dataset, tokenizer)
   tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
+  
   tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
   tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
 

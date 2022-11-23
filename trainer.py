@@ -16,19 +16,22 @@ class RE_Trainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         labels = inputs.get("labels")
+
         # forward pass
         if self.model_type == 'CNN':
           inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask')}
           outputs = model(**inputs)
           logits = outputs.get("logits")
+
         elif self.model_type == 'base':
-          outputs = model(**inputs)
-          logits = outputs.get("logits")
-        
+            inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask'),'labels':inputs.get('labels')}
+            outputs = model(**inputs)
+            logits = outputs.get("logits")
+
         elif self.model_type == 'entity':
-          outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'],
+            outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'],
                         attention_mask=inputs['attention_mask'], entity_ids=inputs['entity_ids'])
-          logits = outputs['outputs']
+            logits = outputs['outputs']
 
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
