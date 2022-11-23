@@ -10,3 +10,5 @@ EDA/output/*
 EDA
 logs
 best_model
+predict
+*.txt

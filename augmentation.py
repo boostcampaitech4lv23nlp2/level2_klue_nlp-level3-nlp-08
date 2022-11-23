@@ -155,3 +155,9 @@ def aeda(train_df, train_label, check_num):
     train_label.extend(new_label)
 
     return aug_df, train_label
+
+def RD(dataset):
+  dataset = calculate_idx(dataset)
+  dataset = random_delete(dataset,0.3)
+
+  return dataset
