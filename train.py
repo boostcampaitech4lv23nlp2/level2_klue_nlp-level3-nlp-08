@@ -35,25 +35,28 @@ def train():
 
   # load dataset
   train_dataset = load_data(cfg.path.train_path)
-  # dev_dataset = load_data("../dataset/train/dev.csv") # validation용 데이터는 따로 만드셔야 합니다.
-
+  dev_dataset = load_data(cfg.path.dev_path) # validation용 데이터는 따로 만드셔야 합니다.
+  
   train_label = label_to_num(train_dataset['label'].values)
-  # dev_label = label_to_num(dev_dataset['label'].values)
+  dev_label = label_to_num(dev_dataset['label'].values)
 
   # tokenizing dataset
-  tokenized_train = tokenized_dataset(train_dataset, tokenizer)
+  # tokenized_train = tokenized_dataset(train_dataset, tokenizer)
   # tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
+
+  tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
+  tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
 
   # make dataset for pytorch.
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-  # RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+  RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
   print(device)
   # setting model hyperparameter
   
-  model =  auto_models.RE_Model(MODEL_NAME)
+  model = auto_models.EntityModel(cfg, MODEL_NAME)
   model.parameters
   model.to(device)
   
@@ -84,7 +87,7 @@ def train():
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
-    eval_dataset=RE_train_dataset,       # evaluation dataset
+    eval_dataset=RE_dev_dataset,       # evaluation dataset
     loss_name = cfg.train.loss_name,
     scheduler = cfg.train.scheduler,                   
     compute_metrics=compute_metrics,      # define metrics function
@@ -97,13 +100,13 @@ def train():
   model.save_pretrained('./best_model')
   
 def main():
-  wandb.init(project = 'lhJoon_exp',name=cfg.exp.exp_name,entity='boot4-nlp-08')
+  wandb.init(project = 'hyunsoo_exp',name=cfg.exp.exp_name,entity='boot4-nlp-08')
   wandb.config = cfg
   train()
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--config',type=str,default='')
+  parser.add_argument('--config',type=str,default='base_config')
   args , _ = parser.parse_known_args()
   cfg = OmegaConf.load(f'./config/{args.config}.yaml')
   main()

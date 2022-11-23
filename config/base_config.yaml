@@ -1,24 +1,24 @@
 path:
-    train_path: ./NLP_dataset/train/train.csv
-    dev_path: ./NLP_dataset/train/train.csv # 수정 필요
-    test_path: ./NLP_dataset/train/train.csv # 수정 필요
+    train_path: ./NLP_dataset/train/stratify_train.csv
+    dev_path: ./NLP_dataset/train/stratify_valid.csv # 수정 필요
+    test_path: ./NLP_dataset/train/stratify_valid.csv # 수정 필요
     predict_path: ./NLP_dataset/test/test_data.csv
 
 exp:
-    exp_name : 'baseline_code'
+    exp_name : 'ENTITY-EMBEDDING'
 #data:
 #    shuffle: True
 #    augmentation: # adea, bt 등등
     
 model:
-    model_name: klue/roberta-small
+    model_name: klue/bert-base
     saved_name: base_model
 
 train:
     loss_name : 'CE'
     gpus: 1
-    batch_size: 16
-    max_epoch: 20
+    batch_size: 64
+    max_epoch: 10
     learning_rate: 5e-5
     logging_step: 1
     save_total_limit : 5 # number of total save model.
