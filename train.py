@@ -36,13 +36,14 @@ def train():
   # load dataset
   train_dataset = load_data(cfg.path.train_path)
   dev_dataset = load_data(cfg.path.dev_path) # validation용 데이터는 따로 만드셔야 합니다.
-  
+
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
 
   # tokenizing dataset
-  # tokenized_train = tokenized_dataset(train_dataset, tokenizer)
-  # tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
+
+  tokenized_train = tokenized_dataset(train_dataset, tokenizer)
+  tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
   tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
   tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
@@ -55,8 +56,14 @@ def train():
 
   print(device)
   # setting model hyperparameter
-  
-  model = auto_models.EntityModel(cfg, MODEL_NAME)
+
+  if cfg.model.type == "CNN":
+    model = auto_models.CNN_Model(MODEL_NAME)
+  elif cfg.model.type == "base":
+    model =  auto_models.RE_Model(MODEL_NAME)
+  elif cfg.model.type == "entity":
+    model = auto_models.EntityModel(cfg, MODEL_NAME)
+
   model.parameters
   model.to(device)
   
@@ -80,6 +87,7 @@ def train():
                                 # `epoch`: Evaluate every end of epoch.
     eval_steps = cfg.train.eval_steps,            # evaluation step.
     load_best_model_at_end = True,
+    report_to='wandb'
     
   )
   
@@ -91,16 +99,19 @@ def train():
     loss_name = cfg.train.loss_name,
     scheduler = cfg.train.scheduler,                   
     compute_metrics=compute_metrics,      # define metrics function
-    num_training_steps = 3 * len(train_dataset)
+    num_training_steps = 3 * len(train_dataset),
+    model_type = cfg.model.type
+
   )
 
   # train model
   wandb.watch(model)
   trainer.train()
-  model.save_pretrained('./best_model')
-  
+  torch.save(model.state_dict(),cfg.test.model_dir)  
+
 def main():
-  wandb.init(project = 'hyunsoo_exp',name=cfg.exp.exp_name,entity='boot4-nlp-08')
+
+  wandb.init(project = cfg.exp.project_name, name=cfg.exp.exp_name, entity='boot4-nlp-08')
   wandb.config = cfg
   train()
 

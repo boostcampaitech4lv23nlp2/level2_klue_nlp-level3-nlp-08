@@ -3,9 +3,8 @@ path:
     dev_path: ./NLP_dataset/train/stratify_valid.csv # 수정 필요
     predict_path: ./NLP_dataset/test/test_data.csv
 
-
 exp:
-    exp_name : baseline
+    exp_name : bert-base/cnn/relu
     project_name : lhJoon_exp
 #data:
 #    shuffle: True
@@ -13,8 +12,8 @@ exp:
     
 model:
     model_name: klue/bert-base
-    saved_name: base_model
-    type : base
+    saved_name: CNN_append
+    type : CNN
 
 train:
     loss_name : 'CE'
@@ -32,9 +31,5 @@ train:
     scheduler : 'linear' # linear OR cosine OR steplr
 
 test:
-    model_dir : ./predict/best_base_model
-    prediction : ./predict/best_base_model_submission.csv
-
-score:
-    f1_score: 65.3435
-    auprc : 63.2901
+    model_dir : ./predict/best_cnn_model
+    prediction : ./predict/best_cnn_model_submission.csv

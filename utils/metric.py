@@ -21,6 +21,7 @@ def klue_re_micro_f1(preds, labels):
        'per:schools_attended', 'per:date_of_death', 'per:date_of_birth',
        'per:place_of_birth', 'per:place_of_death', 'org:founded_by',
        'per:religion']
+    print(preds.shape,labels.shape)
     no_relation_label_idx = label_list.index("no_relation")
     label_indices = list(range(len(label_list)))
     label_indices.remove(no_relation_label_idx)
@@ -43,8 +44,8 @@ def klue_re_auprc(probs, labels):
 
 def compute_metrics(pred):
   """ validation을 위한 metrics function """
-  labels = pred.label_ids
-  preds = pred.predictions.argmax(-1)
+  labels = pred.label_ids # 3240
+  preds = pred.predictions.argmax(-1) # 51 
   probs = pred.predictions
 
   # calculate accuracy using sklearn's function
