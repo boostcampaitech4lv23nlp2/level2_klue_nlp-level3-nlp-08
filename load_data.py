@@ -25,8 +25,8 @@ def preprocessing_dataset(dataset):
   for i,j in zip(dataset['subject_entity'], dataset['object_entity']):
     i = i[1:-1].split(',')[0].split(':')[1]
     j = j[1:-1].split(',')[0].split(':')[1]
-    print(i)
-    breakpoint()
+    #print(i)
+
     subject_entity.append(i)
     object_entity.append(j)
   out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':dataset['sentence'],'subject_entity':subject_entity,'object_entity':object_entity,'label':dataset['label'],})
@@ -40,7 +40,8 @@ def ner_preprocessing_dataset(dataset):
   se_entity=[]
   os_entity=[]
   oe_entity=[]
-  for i,j in zip(dataset['subject_entity'], dataset['object_entity']):
+  sen_li=[]
+  for i,j,sen in zip(dataset['subject_entity'], dataset['object_entity'],dataset['sentence']):
     sepi=i.split('start_idx')
     sepj=j.split('start_idx')
     ss,se=re.findall(r'[0-9]+',sepi[1])
@@ -49,14 +50,17 @@ def ner_preprocessing_dataset(dataset):
     j = j.split('\'type\': ')
     i=re.search(r'[A-z]+',i[1]).group()
     j=re.search(r'[A-z]+',j[1]).group()
-
+    #한문제거
+    new_sen=re.sub(r'[一-龥]+',"",sen)
+    #
+    sen_li.append(new_sen)
     subject_entity.append(i)
     object_entity.append(j)
     ss_entity.append(ss)
     se_entity.append(se)
     os_entity.append(os)
     oe_entity.append(oe)
-  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':dataset['sentence'],'subject_entity':subject_entity,'object_entity':object_entity,'label':dataset['label'],'ss':ss_entity,'se':se_entity,'os':os_entity,'oe':oe_entity,})
+  out_dataset = pd.DataFrame({'id':dataset['id'], 'sentence':sen_li,'subject_entity':subject_entity,'object_entity':object_entity,'label':dataset['label'],'ss':ss_entity,'se':se_entity,'os':os_entity,'oe':oe_entity,})
   
   return out_dataset
 
@@ -68,41 +72,75 @@ def load_data(dataset_dir):
   return dataset
 
 
-def tokenized_dataset(dataset, tokenizer,mode=None):
+def tokenized_dataset(dataset, tokenizer,mode="typed_entity_marker_punct"):
   """ tokenizer에 따라 sentence를 tokenizing 합니다."""
-
+  print(dataset.iloc[62])
+  #breakpoint()
   concat_entity = []
-  for e01, e02 in zip(dataset['subject_entity'], dataset['object_entity']):
-    temp = ''
-    temp = e01 + '[SEP]' + e02
-    concat_entity.append(temp)
+  if mode==None:
+    for e01, e02 in zip(dataset['subject_entity'], dataset['object_entity']):
+      temp = ''
+      temp = e01 + '[SEP]' + e02
+      concat_entity.append(temp)
   
   if mode=='typed_entity_marker':
-     new_tokens=[]
-     for sen,e01,e02, ss,se,os,oe in zip(dataset['sentence'], dataset['subject_entity'],dataset['object_entity'],dataset['ss'],dataset['se'],dataset['os'],dataset['oe']):
+    new_tokens=[]
+
+    for sen,e01,e02, ss,se,os,oe in zip(dataset['sentence'], dataset['subject_entity'],dataset['object_entity'],dataset['ss'],dataset['se'],dataset['os'],dataset['oe']):
+        temp = ''
         subj_start = '[SUBJ-{}]'.format(e01)
         subj_end='[/SUBJ-{}]'.format(e01)
-        obj_start='[OBJ-{}]'.format(obj_type)
-        obj_end='[/OBJ-{}]'.format(obj_type)
+        obj_start='[OBJ-{}]'.format(e02)
+        obj_end='[/OBJ-{}]'.format(e02)
+        ss=int(ss)
+        se=int(se)
+        os=int(os)
+        oe=int(oe)
         for token in (subj_start,subj_end,obj_start,obj_end):
-          if token not in new_tokens:
-            print(token)    
+          if token not in new_tokens:    
             new_tokens.append(token)
             tokenizer.add_tokens([token])
         
-        breakpoint()
         if ss<=os:
-          temp=sen[0:ss]+subj_start+sen[ss:se+1]+subj_end+sen[se+1:os]+obj_start+sen[os:oe+1]+obj_end+sen[oe+1:]
+          temp=sen[0:ss]+subj_start+sen[ss:se+1]+subj_end+sen[se+1:os]+obj_start+sen[os:oe+1]+obj_end+sen[oe+1:] 
         else:
           temp=sen[0:os]+obj_start+sen[os:oe+1]+obj_end+sen[oe+1:ss]+subj_start+sen[ss:se+1]+subj_end+sen[se+1:]
+        concat_entity.append(temp)
+
+  if mode=='typed_entity_marker_punct':
+    new_tokens=[]
+    match_dict={
+      'PER': '사람',
+      'ORG':'조직',
+      'DAT':'날짜',
+      'LOC':'장소',
+      'POH':'단어',#직업이 많아보이긴함 근데 완전다른것도 존재
+      'NOH':'숫자'
+    }
+    for sen,e01,e02, ss,se,os,oe in zip(dataset['sentence'], dataset['subject_entity'],dataset['object_entity'],dataset['ss'],dataset['se'],dataset['os'],dataset['oe']):
+        temp = ''
+        sub_entity=match_dict[e01]
+        obj_entity=match_dict[e02]
+        ss=int(ss)
+        se=int(se)
+        os=int(os)
+        oe=int(oe)
+        
+        if ss<=os:
+          temp=sen[0:ss]+"@*"+sub_entity+"*"+sen[ss:se+1]+"@"+sen[se+1:os]+"#^"+obj_entity+"^"+sen[os:oe+1]+"#"+sen[oe+1:] 
+        else:
+          temp=sen[0:os]+"#^"+obj_entity+"^"+sen[os:oe+1]+"#"+sen[oe+1:ss]+"@*"+sub_entity+"*"+sen[ss:se+1]+"@"+sen[se+1:]
+        concat_entity.append(temp)
+    
   tokenized_sentences = tokenizer(
       concat_entity,
-      list(dataset['sentence']),
       return_tensors="pt",
       padding=True,
       truncation=True,
       max_length=256,
       add_special_tokens=True,
-      )      
+      )
+  input_ids=tokenized_sentences['input_ids'][0]
+  
   return tokenized_sentences
 
