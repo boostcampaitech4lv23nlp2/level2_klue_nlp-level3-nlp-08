@@ -1,0 +1,42 @@
+path:
+    train_path: ./NLP_dataset/train/train_2022_10.csv
+    dev_path: ./NLP_dataset/train/val_2022_10.csv # 수정 필요
+    predict_path: ./NLP_dataset/test/test_data.csv
+
+
+exp:
+    exp_name : cmg # 변경 해야함!! 실험 이름
+    project_name : mgexp # 변경 해야함!! 실험 공간 ex) Moongi_exp
+
+data:
+    aug_option : 'AEDA'
+    entity: True
+    preprocess_option: 'PUNCT'
+    
+model:
+    model_name: klue/bert-base
+    saved_name: base_model
+    type : base
+
+train:
+    loss_name : 'CE'
+    gpus: 1
+    batch_size: 64
+    max_epoch: 10
+    learning_rate: 5e-5
+    logging_step: 1
+    save_total_limit : 5 # number of total save model.
+    save_steps : 500 # model saving step.
+    warmup_steps : 500 # number of warmup steps for learning rate scheduler
+    weight_decay : 0.01 # strength of weight decay
+    logging_steps : 100  # log saving step.
+    eval_steps : 500 # evaluation step
+    scheduler : 'linear' # linear OR cosine OR steplr
+
+test:
+    model_dir : ./predict/best_base_model
+    prediction : ./predict/best_base_model_submission.csv
+
+score:
+    f1_score: 65.3435
+    auprc : 63.2901
