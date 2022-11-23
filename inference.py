@@ -9,6 +9,7 @@ import pickle as pickle
 import numpy as np
 import argparse
 from tqdm import tqdm
+import random
 
 def seed_everything(seed):
     random.seed(seed)
@@ -74,7 +75,7 @@ def main(args):
   model.to(device)
 
   ## load test datset
-  test_dataset_dir = "../dataset/test/test_data.csv"
+  test_dataset_dir = "./NLP_dataset/test/test_data.csv"
   test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
   Re_test_dataset = RE_Dataset(test_dataset ,test_label)
 
@@ -87,14 +88,15 @@ def main(args):
   # 아래 directory와 columns의 형태는 지켜주시기 바랍니다.
   output = pd.DataFrame({'id':test_id,'pred_label':pred_answer,'probs':output_prob,})
 
-  output.to_csv('./prediction/submission.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
+  output.to_csv('./prediction/PUN_RD_BT_submission.csv', index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
   #### 필수!! ##############################################
   print('---- Finish! ----')
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   
   # model dir
-  parser.add_argument('--model_dir', type=str, default="./best_model")
+  parser.add_argument('--model_dir', type=str, default="./best_model/best_model_PUN_RD_BT")
+  parser.add_argument('--option', type=str, default='PUNCT')
   args = parser.parse_args()
   print(args)
   main(args)

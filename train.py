@@ -85,7 +85,7 @@ def eda(dataset):
 
 def train():
   seed_everything(42)
-  train_path = "./NLP_dataset/train/train.csv"
+  train_path = "./NLP_dataset/train/BT_train.csv"
 
   MODEL_NAME = "klue/bert-base"
   
@@ -94,12 +94,12 @@ def train():
 
   print('Preprocessing...')
   preprocess = Preprocess(train_path, 'PUNCT')
-  aug_option = 'AEDA'
+  aug_option = 'RD'
 
   train_dataset = preprocess.data
   train_label = label_to_num(train_dataset['label'].values)
 
-  if aug_option == 'EDA':
+  if aug_option == 'RD':
     train_dataset = eda(train_dataset) #EDA(Random Delete 적용)
   elif aug_option == 'AEDA':
     train_dataset, train_label = aeda(train_dataset, train_label, 2) #AEDA 적용
@@ -122,7 +122,7 @@ def train():
   # 사용한 option 외에도 다양한 option들이 있습니다.
   # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
   training_args = TrainingArguments(
-    output_dir='./results',          # output directory
+    output_dir='./results/results_PUN_RD_BT',          # output directory
     save_total_limit=5,              # number of total save model.
     save_steps=500,                 # model saving step.
     num_train_epochs=10,              # total number of training epochs
@@ -131,7 +131,7 @@ def train():
     per_device_eval_batch_size=64,   # batch size for evaluation
     warmup_steps=500,                # number of warmup steps for learning rate scheduler
     weight_decay=0.01,               # strength of weight decay
-    logging_dir='./logs',            # directory for storing logs
+    logging_dir='./logs_RD_BT',            # directory for storing logs
     logging_steps=100,              # log saving step.
     evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
@@ -150,7 +150,7 @@ def train():
 
   # train model
   trainer.train()
-  model.save_pretrained('./best_model')
+  model.save_pretrained('./best_model/best_model_PUN_RD_BT')
   
 def main():
   train()

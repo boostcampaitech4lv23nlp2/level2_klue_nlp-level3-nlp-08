@@ -9,3 +9,7 @@ EDA/output/*
 *.csv
 playground.ipynb
 EDA/DataAugmentation
+best_model
+results
+.results
+logs

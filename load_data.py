@@ -16,7 +16,6 @@ class RE_Dataset(torch.utils.data.Dataset):
   def __len__(self):
     return len(self.labels)
 
-
 class Preprocess:
   def __init__(self, path, option):
     self.option = option
