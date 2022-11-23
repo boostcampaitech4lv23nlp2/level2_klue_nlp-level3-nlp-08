@@ -4,7 +4,7 @@ path:
     predict_path: ./NLP_dataset/test/test_data.csv
 
 exp:
-    exp_name : bert-base/cnn
+    exp_name : bert-base/cnn/relu
     project_name : lhJoon_exp
 #data:
 #    shuffle: True

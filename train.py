@@ -79,6 +79,7 @@ def train():
                                 # `epoch`: Evaluate every end of epoch.
     eval_steps = cfg.train.eval_steps,            # evaluation step.
     load_best_model_at_end = True,
+    report_to='wandb'
     
   )
   
@@ -92,6 +93,7 @@ def train():
     compute_metrics=compute_metrics,      # define metrics function
     num_training_steps = 3 * len(train_dataset),
     model_type = cfg.model.type
+
   )
 
   # train model
@@ -100,7 +102,7 @@ def train():
   torch.save(model.state_dict(),cfg.test.model_dir)  
 
 def main():
-  wandb.init(project = 'lhJoon_exp',name=cfg.exp.exp_name,entity='boot4-nlp-08')
+  wandb.init(project = cfg.exp.project_name,name=cfg.exp.exp_name,entity='boot4-nlp-08')
   wandb.config = cfg
   train()
 

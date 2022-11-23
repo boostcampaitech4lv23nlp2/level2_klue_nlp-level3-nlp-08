@@ -5,7 +5,8 @@ path:
 
 
 exp:
-    exp_name : 'baseline_code_for_inference.py'
+    exp_name : baseline
+    project_name : lhJoon_exp
 #data:
 #    shuffle: True
 #    augmentation: # adea, bt 등등
@@ -33,3 +34,7 @@ train:
 test:
     model_dir : ./predict/best_base_model
     prediction : ./predict/best_base_model_submission.csv
+
+score:
+    f1_score: 65.3435
+    auprc : 63.2901
