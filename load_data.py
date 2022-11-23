@@ -51,7 +51,8 @@ def ner_preprocessing_dataset(dataset):
     i=re.search(r'[A-z]+',i[1]).group()
     j=re.search(r'[A-z]+',j[1]).group()
     #한문제거
-    new_sen=re.sub(r'[一-龥]+',"",sen)
+    
+    new_sen=re.sub(r'[^A-Za-z0-9가-힣\s]',"",sen)
     #
     sen_li.append(new_sen)
     subject_entity.append(i)
@@ -72,7 +73,7 @@ def load_data(dataset_dir):
   return dataset
 
 
-def tokenized_dataset(dataset, tokenizer,mode="typed_entity_marker_punct"):
+def tokenized_dataset(dataset, tokenizer,mode="typed_entity_marker"):
   """ tokenizer에 따라 sentence를 tokenizing 합니다."""
   print(dataset.iloc[62])
   #breakpoint()
