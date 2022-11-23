@@ -35,11 +35,15 @@ def train():
   # MODEL_NAME = "bert-base-uncased"
   aug_option = cfg.data.aug_option 
   MODEL_NAME = cfg.model.model_name #"klue/bert-base"
+  entity = cfg.data.entity #True/False
+  preprocess_option = cfg.data.preprocess_option
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-
+  
+  train_preprocess = Preprocess(cfg.path.train_path, preprocess_option)
+  dev_preprocess = Preprocess(cfg.path.dev_path, preprocess_option)
   # load dataset
-  train_dataset = load_data(cfg.path.train_path)
-  dev_dataset = load_data(cfg.path.dev_path) # validation용 데이터는 따로 만드셔야 합니다.
+  train_dataset = train_preprocess.data
+  dev_dataset = dev_preprocess.data
 
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
@@ -52,12 +56,12 @@ def train():
     None
     
   # tokenizing dataset
-  tokenized_train = tokenized_dataset(train_dataset, tokenizer)
-  tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
-
-  
-  tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
-  tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
+  if entity:
+    tokenized_train = train_preprocess.entity_tokenized_dataset(train_dataset, tokenizer)
+    tokenized_dev = dev_preprocess.entity_tokenized_dataset(dev_dataset, tokenizer)
+  else:
+    tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer)
+    tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer)
 
   # make dataset for pytorch.
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
