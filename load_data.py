@@ -22,9 +22,11 @@ def preprocessing_dataset(dataset):
   """ 처음 불러온 csv 파일을 원하는 형태의 DataFrame으로 변경 시켜줍니다."""
   subject_entity = []
   object_entity = []
+  #print(dataset.iloc[0])
+  #breakpoint()
   for i,j in zip(dataset['subject_entity'], dataset['object_entity']):
-    i = i[1:-1].split(',')[0].split(':')[1]
-    j = j[1:-1].split(',')[0].split(':')[1]
+    #i = i[1:-1].split(',')[0].split(':')[1]
+    #j = j[1:-1].split(',')[0].split(':')[1]
     #print(i)
 
     subject_entity.append(i)
@@ -68,15 +70,15 @@ def ner_preprocessing_dataset(dataset):
 def load_data(dataset_dir):
   """ csv 파일을 경로에 맡게 불러 옵니다. """
   pd_dataset = pd.read_csv(dataset_dir)
-  dataset = ner_preprocessing_dataset(pd_dataset)
-  
+  #dataset = ner_preprocessing_dataset(pd_dataset)
+  dataset= preprocessing_dataset(pd_dataset)
   return dataset
 
 
-def tokenized_dataset(dataset, tokenizer,mode="typed_entity_marker"):
+def tokenized_dataset(dataset, tokenizer,mode="PASS"):
   """ tokenizer에 따라 sentence를 tokenizing 합니다."""
-  print(dataset.iloc[62])
-  #breakpoint()
+  print(dataset.iloc[0])
+  breakpoint()
   concat_entity = []
   if mode==None:
     for e01, e02 in zip(dataset['subject_entity'], dataset['object_entity']):
@@ -106,6 +108,7 @@ def tokenized_dataset(dataset, tokenizer,mode="typed_entity_marker"):
           temp=sen[0:ss]+subj_start+sen[ss:se+1]+subj_end+sen[se+1:os]+obj_start+sen[os:oe+1]+obj_end+sen[oe+1:] 
         else:
           temp=sen[0:os]+obj_start+sen[os:oe+1]+obj_end+sen[oe+1:ss]+subj_start+sen[ss:se+1]+subj_end+sen[se+1:]
+        print(temp)
         concat_entity.append(temp)
 
   if mode=='typed_entity_marker_punct':
@@ -132,7 +135,20 @@ def tokenized_dataset(dataset, tokenizer,mode="typed_entity_marker"):
         else:
           temp=sen[0:os]+"#^"+obj_entity+"^"+sen[os:oe+1]+"#"+sen[oe+1:ss]+"@*"+sub_entity+"*"+sen[ss:se+1]+"@"+sen[se+1:]
         concat_entity.append(temp)
-    
+    if mode=="PASS":
+      print(dataset['sentence'])
+      breakpoint()
+      tokenized_sentences = tokenizer(
+      list(dataset['sentence']),
+      return_tensors="pt",
+      padding=True,
+      truncation=True,
+      max_length=256,
+      add_special_tokens=True,
+      )
+      print(dataset['sentence'][0:0])
+      #breakpoint()
+      return tokenized_sentences
   tokenized_sentences = tokenizer(
       concat_entity,
       return_tensors="pt",

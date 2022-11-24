@@ -72,7 +72,7 @@ def train():
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
   # load dataset
-  train_dataset = load_data("train1.csv")
+  train_dataset = load_data("train_aeda.csv")
   dev_dataset = load_data("val1.csv") # validation용 데이터는 따로 만드셔야 합니다.
 
   train_label = label_to_num(train_dataset['label'].values)
