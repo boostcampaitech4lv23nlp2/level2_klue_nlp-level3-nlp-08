@@ -12,3 +12,4 @@ logs
 best_model
 predict
 *.txt
+*.ipynb

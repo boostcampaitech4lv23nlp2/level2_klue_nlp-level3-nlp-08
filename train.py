@@ -12,7 +12,8 @@ from transformers import (
   RobertaTokenizer, 
   RobertaForSequenceClassification, 
   BertTokenizer,
-  get_scheduler
+  get_scheduler,
+  EarlyStoppingCallback
 )
 from load_data import *
 from augmentation import *
@@ -56,8 +57,8 @@ def train():
   tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
   
-  tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
-  tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
+  #tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
+  #tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
 
   # make dataset for pytorch.
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
@@ -81,8 +82,8 @@ def train():
   # 사용한 option 외에도 다양한 option들이 있습니다.
   # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
   training_args = TrainingArguments(
-    output_dir='./results',          # output directory
-    save_total_limit=cfg.train.save_total_limit,# number of total save model.
+    output_dir= f'./results/{cfg.exp.exp_name}',          # output directory
+    save_total_limit=cfg.train.save_total_limit, # number of total save model.
     save_steps=cfg.train.save_steps,                 # model saving step.
     num_train_epochs=cfg.train.max_epoch,              # total number of training epochs
     learning_rate=cfg.train.learning_rate,               # learning_rate
@@ -98,6 +99,8 @@ def train():
                                 # `epoch`: Evaluate every end of epoch.
     eval_steps = cfg.train.eval_steps,            # evaluation step.
     load_best_model_at_end = True,
+    metric_for_best_model= cfg.train.metric_for_best_model, #eval_loss
+    greater_is_better = True,
     report_to='wandb'
     
   )
@@ -111,6 +114,7 @@ def train():
     scheduler = cfg.train.scheduler,                   
     compute_metrics=compute_metrics,      # define metrics function
     num_training_steps = 3 * len(train_dataset),
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
     model_type = cfg.model.type
 
   )
@@ -118,7 +122,10 @@ def train():
   # train model
   wandb.watch(model)
   trainer.train()
-  torch.save(model.state_dict(),cfg.test.model_dir)  
+  try:
+    model.save_pretrained(cfg.test.model_dir)
+  except:
+    torch.save(model.state_dict(),cfg.test.model_dir)  
 
 def main():
 

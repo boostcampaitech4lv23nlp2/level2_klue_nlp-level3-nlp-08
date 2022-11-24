@@ -5,11 +5,11 @@ path:
 
 
 exp:
-    exp_name : test_merge # 변경 해야함!! 실험 이름
+    exp_name : baseline # 변경 해야함!! 실험 이름
     project_name : lhJoon_exp # 변경 해야함!! 실험 공간 ex) Moongi_exp
 
 data:
-    aug_option : 'AEDA'
+    aug_option : None
     
 model:
     model_name: klue/bert-base
@@ -23,13 +23,15 @@ train:
     max_epoch: 10
     learning_rate: 5e-5
     logging_step: 1
-    save_total_limit : 5 # number of total save model.
+    save_total_limit : 3 # number of total save model.
     save_steps : 500 # model saving step.
     warmup_steps : 500 # number of warmup steps for learning rate scheduler
     weight_decay : 0.01 # strength of weight decay
     logging_steps : 100  # log saving step.
     eval_steps : 500 # evaluation step
     scheduler : 'linear' # linear OR cosine OR steplr
+    metric_for_best_model : 'micro f1 score'
+    patience : 3
 
 test:
     model_dir : ./predict/best_base_model

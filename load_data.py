@@ -59,7 +59,7 @@ def tokenized_dataset(dataset, tokenizer):
       )
   return tokenized_sentences
 
-
+'''
 def entity_tokenized_dataset(dataset, tokenizer):
 
     """ tokenizer에 따라 sentence를 tokenizing 합니다."""
@@ -100,3 +100,4 @@ def entity_tokenized_dataset(dataset, tokenizer):
     tokenized_sentences['entity_ids'] = torch.LongTensor(entity_ids)
 
     return tokenized_sentences
+'''

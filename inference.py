@@ -21,7 +21,7 @@ def inference(model, tokenized_sent, device):
   model.eval()
   output_pred = []
   output_prob = []
-  for i, data in enumerate(tqdm(dataloader)):
+  for i, data in enumerate(dataloader):  # tqdm
     with torch.no_grad():
       outputs = model(
           input_ids=data['input_ids'].to(device),
