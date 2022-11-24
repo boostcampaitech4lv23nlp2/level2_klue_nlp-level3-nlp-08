@@ -25,8 +25,8 @@ def preprocessing_dataset(dataset):
   #print(dataset.iloc[0])
   #breakpoint()
   for i,j in zip(dataset['subject_entity'], dataset['object_entity']):
-    #i = i[1:-1].split(',')[0].split(':')[1]
-    #j = j[1:-1].split(',')[0].split(':')[1]
+    i = i[1:-1].split(',')[0].split(':')[1]
+    j = j[1:-1].split(',')[0].split(':')[1]
     #print(i)
 
     subject_entity.append(i)
@@ -53,8 +53,8 @@ def ner_preprocessing_dataset(dataset):
     i=re.search(r'[A-z]+',i[1]).group()
     j=re.search(r'[A-z]+',j[1]).group()
     #한문제거
-    
-    new_sen=re.sub(r'[^A-Za-z0-9가-힣\s]',"",sen)
+    new_sen=re.sub(r'一-龥','',sen)
+    #new_sen=re.sub(r'[^A-Za-z0-9가-힣\s]',"",sen)
     #
     sen_li.append(new_sen)
     subject_entity.append(i)
@@ -70,6 +70,7 @@ def ner_preprocessing_dataset(dataset):
 def load_data(dataset_dir):
   """ csv 파일을 경로에 맡게 불러 옵니다. """
   pd_dataset = pd.read_csv(dataset_dir)
+  
   #dataset = ner_preprocessing_dataset(pd_dataset)
   dataset= preprocessing_dataset(pd_dataset)
   return dataset
