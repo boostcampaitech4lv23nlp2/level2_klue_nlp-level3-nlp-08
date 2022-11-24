@@ -12,7 +12,8 @@ def load_data(path):
     for idx, [x, y, z] in enumerate(zip(data['subject_entity'], data['object_entity'], data['sentence'])):
         subT = x[1:-1].split(':')[-1].split('\'')[-2] # Subject Entity의 type
         objT= y[1:-1].split(':')[-1].split('\'')[-2] # Object Entity의 type
-        for idx_i in range(len(x)): # Entity label에서 start_idx와 end_idx 추출
+        maxlen = max(len(x), len(y))
+        for idx_i in range(maxlen): # Entity label에서 start_idx와 end_idx 추출
             if x[idx_i:idx_i+9] == 'start_idx':
                 sub_start = int(x[idx_i+12:].split(',')[0].strip())
             if x[idx_i:idx_i+7] == 'end_idx':
@@ -78,10 +79,10 @@ def aeda(train_df, check_num):
             append_new_sentence(new_df, train_df, i, s)
 
     aug_df = train_df.append(new_df, ignore_index=True)
-    pd.DataFrame(aug_df).to_csv(f"../NLP_dataset/train/train_aeda.csv", index=False)
+    pd.DataFrame(aug_df).to_csv(f"../NLP_dataset/train/BT_train_aeda.csv")
 
 if __name__ == '__main__':
-    path = '../NLP_dataset/train/train.csv'
+    path = '../NLP_dataset/train/BT_train.csv'
     dataset = load_data(path)
 
     aeda(dataset, 2)

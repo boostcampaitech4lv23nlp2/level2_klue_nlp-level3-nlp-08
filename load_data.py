@@ -20,66 +20,13 @@ class RE_Dataset(torch.utils.data.Dataset):
     return len(self.labels)
 
 class Preprocess:
-  def __init__(self, path, option):
-    self.option = option
+  def __init__(self, path):
     self.data = self.load_data(path)
   
   def load_data(self, path):
     data = pd.read_csv(path)
-
-    sub_entity, sub_type = [], []
-    obj_entity, obj_type = [], []
-    sub_idx, obj_idx = [], []
-    sentence = []
-
-    for idx, [x, y, z] in enumerate(zip(data['subject_entity'], data['object_entity'], data['sentence'])):
-      subT = x[1:-1].split(':')[-1].split('\'')[-2] # Subject Entity의 type
-      objT= y[1:-1].split(':')[-1].split('\'')[-2] # Object Entity의 type
-
-      for idx_i in range(len(x)): # Entity label에서 start_idx와 end_idx 추출
-        if x[idx_i:idx_i+9] == 'start_idx':
-            sub_start = int(x[idx_i+12:].split(',')[0].strip())
-        if x[idx_i:idx_i+7] == 'end_idx':
-            sub_end = int(x[idx_i+10:].split(',')[0].strip())
-                
-        if y[idx_i:idx_i+9] == 'start_idx':
-            obj_start = int(y[idx_i+12:].split(',')[0].strip())
-        if y[idx_i:idx_i+7] == 'end_idx':
-            obj_end = int(y[idx_i+10:].split(',')[0].strip())
-      
-      sub_i = [sub_start, sub_end]
-      obj_i = [obj_start, obj_end]
-
-      sub_entity.append(z[sub_i[0]:sub_i[1]+1])
-      obj_entity.append(z[obj_i[0]:obj_i[1]+1])
-      sub_type.append(subT)
-      sub_idx.append(sub_i)
-      obj_type.append(objT)
-      obj_idx.append(obj_i)
-
-      if self.option == 'TOKEN': # Sub/Obj Entity 양 옆에 [SUB][/SUB] or [OBJ][/OBJ] 토큰 삽입
-        if sub_i[0] < obj_i[0]:
-            z = z[:sub_i[0]] + '[SUB]' + z[sub_i[0]:sub_i[1]+1] + '[/SUB]' + z[sub_i[1]+1:]
-            z = z[:obj_i[0]+11] + '[OBJ]' + z[obj_i[0]+11: obj_i[1]+12] + '[/OBJ]'+ z[obj_i[1]+12:]
-        else:
-            z = z[:obj_i[0]] + '[OBJ]' + z[obj_i[0]: obj_i[1]+1] + '[/OBJ]'+ z[obj_i[1]+1:]
-            z = z[:sub_i[0]+11] + '[SUB]'+ z[sub_i[0]+11: sub_i[1]+12] + '[/SUB]' + z[sub_i[1]+12:]
-
-      elif self.option == 'PUNCT': # Sub/Obj Entity 양 옆에 @/# 기호 삽입, 추가로 entity 왼쪽에 *entity type*/^entity type^삽입
-          if sub_i[0] < obj_i[0]:
-              z = z[:sub_i[0]] + '@*' + subT +'*' + z[sub_i[0]: sub_i[1]+1] + '@' + z[sub_i[1]+1:]
-              z = z[:obj_i[0]+7] + '#^' + objT + '^'+ z[obj_i[0]+7: obj_i[1]+8] + '#'+ z[obj_i[1]+8:]
-          else:
-              z = z[:obj_i[0]] + '#^' + objT +'^' + z[obj_i[0]: obj_i[1]+1] + '#' + z[obj_i[1]+1:]
-              z = z[:sub_i[0]+7] + '@*' + subT + '*' + z[sub_i[0]+7: sub_i[1]+8] + '@' + z[sub_i[1]+8:]
-      
-      sentence.append(z)
     
-    df = pd.DataFrame({'id': data['id'], 'sentence' : sentence, 'subject_entity': sub_entity, 'object_entity': obj_entity,
-                       'subject_type': sub_type, 'object_type': obj_type, 'label': data['label'],
-                       'subject_idx': sub_idx, 'object_idx': obj_idx})
-    
-    return df
+    return data
   
   def label_to_num(self, label):
     num_label = []
@@ -96,7 +43,7 @@ class Preprocess:
     """ tokenizer에 따라 sentence를 tokenizing 합니다."""
     concat_entity = []
     entity_ids = []
-    for e01, e02, sent in tqdm.tqdm(zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']), total=len(dataset)):
+    for e01, e02, sent in tqdm.tqdm(zip(dataset['subject_entity'], dataset['object_entity'], dataset['sentence']), total=len(dataset), desc="Dataset Tokenization Processing..."):
         temp = ''
         temp = e01 + '[SEP]' + e02
         entity_one_ids = tokenizer(e01, add_special_tokens=False)['input_ids']
