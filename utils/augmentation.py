@@ -43,10 +43,15 @@ class myAEDA(AEDA):
 
         return augmented_sentences
 
-def make_new_text(sentence, punc_ratio):
+def make_new_text(sentence, punc_ratio, subject_entity, object_entity):
     aeda = myAEDA(morpheme_analyzer="Okt", punc_ratio=punc_ratio, punctuations=[".", ",", "!", "?", ";", ":"])
-    new_sentence = aeda(sentence)
-
+    #Entity 사이에 punctutation이 안들어가는 경우의 수만 return
+    while True:
+        new_sentence = aeda(sentence)
+        if subject_entity in new_sentence and object_entity in new_sentence:
+            break
+    return new_sentence
+    
     return new_sentence
 
 def append_new_sentence(new_df, train_df, i, sentence):
@@ -138,9 +143,12 @@ def aeda(train_df, train_label, check_num):
         else:
             punc_ratio = 0.35
 
+        subject_entity = "@" + sentence.split("@")[1] + "@"
+        object_entity = "#" + sentence.split("#")[1] + "#"
+        
         sentence_set = set([sentence])
         while True:
-            new_sentence = make_new_text(sentence, punc_ratio)
+            new_sentence = make_new_text(sentence, punc_ratio, subject_entity, object_entity)
             sentence_set.add(new_sentence)
             if len(sentence_set) >= check_num:
                 break
