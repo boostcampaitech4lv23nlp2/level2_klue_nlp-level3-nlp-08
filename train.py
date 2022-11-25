@@ -114,7 +114,7 @@ def train():
     scheduler = cfg.train.scheduler,                   
     compute_metrics=compute_metrics,      # define metrics function
     num_training_steps = 3 * len(train_dataset),
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
+    #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
     model_type = cfg.model.type
 
   )

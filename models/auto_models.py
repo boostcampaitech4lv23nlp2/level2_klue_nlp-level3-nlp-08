@@ -29,10 +29,12 @@ class CNN_Model(nn.Module):
         super().__init__()
         self.MODEL_NAME = MODEL_NAME
         self.model_config = AutoConfig.from_pretrained(self.MODEL_NAME) # hidden_size 
-        self.plm = AutoModel.from_pretrained(self.MODEL_NAME)
-        self.cnn_layers = nn.ModuleList([nn.Conv1d(in_channels=self.model_config.hidden_size,out_channels=100,kernel_size=i) for i in range(2,6)]) # 2~7 리셉티브 필드. -> 조밀 부터 멀리까지
-        self.pooling_layers = nn.ModuleList([nn.MaxPool1d(256-i+1) for i in range(2,6)])
-        self.linear = nn.Linear(400,30)
+        self.plm = AutoModel.from_pretrained(self.MODEL_NAME,force_download = True)
+        self.cnn_layers = nn.ModuleList([nn.Conv1d(in_channels=self.model_config.hidden_size,out_channels=100,kernel_size=i) for i in range(2,12)]) # 2~7 리셉티브 필드. -> 조밀 부터 멀리까지
+        #self.cnn_layers2 = nn.ModuleList([nn.Conv1d(in_channels=300,out_channels=100,kernel_size=i) for i in [3,5,7]]) # 2~7 리셉티브 필드. -> 조밀 부터 멀리까지
+        self.pooling_layers = nn.ModuleList([nn.MaxPool1d(256-i+1) for i in range(2,12)])
+        self.linear1 = nn.Linear(1000,500)
+        self.linear2 = nn.Linear(500,30)
 
     def forward(self,**batch):
         inputs = {'input_ids':batch.get('input_ids'),'token_type_ids':batch.get('token_type_ids'),'attention_mask':batch.get('attention_mask')}
@@ -42,12 +44,15 @@ class CNN_Model(nn.Module):
         tmp = []
         for i in range(len(self.cnn_layers)):
             t = torch.relu(self.cnn_layers[i](y))
+            #t = torch.tanh(self.cnn_layers2[i](t))
             t = self.pooling_layers[i](t)
             tmp.append(t)
 
         y = torch.cat(tmp,axis=1).squeeze() # (Batch , 600)
 
-        logits = self.linear(y) # (Batch, 300)
+        y = self.linear1(y)
+        y = torch.relu(y)
+        logits = self.linear2(y) # (Batch, 300)
 
         return {'logits':logits}
 
@@ -265,3 +270,4 @@ class EntityEmbeddings(nn.Module):
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings
+

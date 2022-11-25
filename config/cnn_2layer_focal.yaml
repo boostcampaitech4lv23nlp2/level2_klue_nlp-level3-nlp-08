@@ -5,7 +5,7 @@ path:
 
 
 exp:
-    exp_name : baseline-focal-test # 변경 해야함!! 실험 이름
+    exp_name : bert-cnn-2layer-focal # 변경 해야함!! 실험 이름
     project_name : lhJoon_exp # 변경 해야함!! 실험 공간 ex) Moongi_exp
 
 data:
@@ -13,7 +13,7 @@ data:
     
 model:
     model_name: klue/bert-base
-    type : base
+    type : CNN
 
 train:
     loss_name : 'focal'
@@ -33,9 +33,9 @@ train:
     patience : 3
 
 test:
-    model_dir : ./results/baseline/focal/checkpoint-4500/pytorch_model.bin
-    prediction : ./predict/best_base_model_focal_submission.csv
+    model_dir : ./results/bert-cnn-2layer-focal/checkpoint-1500/pytorch_model.bin
+    prediction : ./predict/best_cnn_2layer_model_focal_submission.csv
 
 score:
-    f1_score: 65.3435
-    auprc : 63.2901
+    f1_score: 65.2038
+    auprc : 64.1606

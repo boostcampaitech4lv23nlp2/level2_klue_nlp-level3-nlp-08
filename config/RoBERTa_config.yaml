@@ -30,6 +30,9 @@ train:
     logging_steps : 100  # log saving step.
     eval_steps : 500 # evaluation step
     scheduler : 'linear' # linear OR cosine OR steplr
+    metric_for_best_model : 'micro f1 score'
+    patience : 3
+
 
 test:
     model_dir : ./predict/best_roberta_model
