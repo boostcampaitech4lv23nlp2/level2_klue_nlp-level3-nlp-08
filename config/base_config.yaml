@@ -1,6 +1,6 @@
 path:
-    train_path: ./NLP_dataset/train/train_2022_10.csv
-    dev_path: ./NLP_dataset/train/val_2022_10.csv # 수정 필요
+    train_path: ./NLP_dataset/train/debug.csv
+    dev_path: ./NLP_dataset/train/debug.csv # 수정 필요
     predict_path: ./NLP_dataset/test/test_data.csv
 
 
@@ -20,7 +20,7 @@ train:
     loss_name : 'CE'
     gpus: 1
     batch_size: 64
-    max_epoch: 10
+    max_epoch: 1
     learning_rate: 5e-5
     logging_step: 1
     save_total_limit : 5 # number of total save model.
