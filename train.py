@@ -16,7 +16,7 @@ from transformers import (
   EarlyStoppingCallback
 )
 from load_data import *
-from augmentation import *
+from utils.augmentation import *
 import random
 from utils.metric import *
 from models import *
@@ -25,50 +25,35 @@ import yaml
 from omegaconf import OmegaConf
 import argparse
 import wandb
+from transformers import logging
 
-
-
-
+logging.set_verbosity_error()
 def train():
-  # fixed seed
-  seed_fix()
-  # load model and tokenizer
-  # MODEL_NAME = "bert-base-uncased"
-  aug_option = cfg.data.aug_option 
+  seed_fix() #Random seed fix
+
   MODEL_NAME = cfg.model.model_name #"klue/bert-base"
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+  
+  print('Data Loading...')
+  train_preprocess = Preprocess(cfg.path.train_path)
+  dev_preprocess = Preprocess(cfg.path.dev_path)
 
-  # load dataset
-  train_dataset = load_data(cfg.path.train_path)
-  dev_dataset = load_data(cfg.path.dev_path) # validation용 데이터는 따로 만드셔야 합니다.
+  train_dataset = train_preprocess.data
+  dev_dataset = dev_preprocess.data
 
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
 
-  if aug_option == 'RD':
-    train_dataset = RD(train_dataset) #EDA(Random Delete 적용)
-  elif aug_option == 'AEDA':
-    train_dataset, train_label = aeda(train_dataset, train_label, 2) #AEDA 적용
-  else:
-    None
-    
-  # tokenizing dataset
-  tokenized_train = tokenized_dataset(train_dataset, tokenizer)
-  tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
+  print('Data Tokenizing...')
+  tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer)
+  tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer)
 
-  
-  #tokenized_train = entity_tokenized_dataset(train_dataset, tokenizer)
-  #tokenized_dev = entity_tokenized_dataset(dev_dataset, tokenizer)
-
-  # make dataset for pytorch.
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
   RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-  print(device)
-  # setting model hyperparameter
-
+  print(f'Selected Model Type: {cfg.model.type}')
   if cfg.model.type == "CNN":
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == "base":
@@ -91,7 +76,7 @@ def train():
     per_device_eval_batch_size= cfg.train.batch_size,   # batch size for evaluation
     warmup_steps=cfg.train.warmup_steps,                # number of warmup steps for learning rate scheduler
     weight_decay= cfg.train.weight_decay,               # strength of weight decay
-    logging_dir='./logs',            # directory for storing logs
+    logging_dir='./logs/logs_BT_AEDA_1124',            # directory for storing logs
     logging_steps=cfg.train.logging_steps,              # log saving step.
     evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
