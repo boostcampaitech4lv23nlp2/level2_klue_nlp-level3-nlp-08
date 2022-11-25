@@ -12,3 +12,6 @@ logs
 best_model
 predict
 *.txt
+config/*
+*/playground.ipynb
+playground.ipynb
