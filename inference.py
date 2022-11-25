@@ -11,8 +11,9 @@ import argparse
 from tqdm import tqdm
 from omegaconf import OmegaConf
 from models import *
+import datetime
+from utils.metric import label_to_num
 from pytz import timezone
-from inference import inference
 
 
 def inference(model, tokenized_sent, device):
