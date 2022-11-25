@@ -72,8 +72,8 @@ def train():
   tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
   len_token=0
   # load dataset
-  train_dataset,len_token = load_data("train_aeda.csv")
-  dev_dataset,_ = load_data("val1.csv") # validation용 데이터는 따로 만드셔야 합니다.
+  train_dataset,len_token = load_data("shuffle_train_adea.csv",datamode="adea",mode="typed_entity_marker_punct")
+  dev_dataset,_ = val_load_data("val1.csv","typed_entity_marker_punct") # validation용 데이터는 따로 만드셔야 합니다.
 
   train_label = label_to_num(train_dataset['label'].values)
   dev_label = label_to_num(dev_dataset['label'].values)
@@ -101,7 +101,7 @@ def train():
   # 사용한 option 외에도 다양한 option들이 있습니다.
   # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
   training_args = TrainingArguments(
-    output_dir='./typed_entity_marker_punct',          # output directory
+    output_dir='./shuffle_adea_typed_entity_marker_punct',          # output directory
     save_total_limit=5,              # number of total save model.
     save_steps=500,                 # model saving step.
     num_train_epochs=20,              # total number of training epochs
