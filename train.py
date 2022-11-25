@@ -86,8 +86,8 @@ def train():
     load_best_model_at_end = True,
     metric_for_best_model= cfg.train.metric_for_best_model, #eval_loss
     greater_is_better = True,
-    report_to='wandb'
-    
+    report_to='wandb',
+    disable_tqdm = False
   )
   
   trainer = RE_Trainer(
@@ -101,7 +101,6 @@ def train():
     num_training_steps = 3 * len(train_dataset),
     #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
     model_type = cfg.model.type
-
   )
 
   # train model

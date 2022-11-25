@@ -58,7 +58,7 @@ def load_test_dataset(dataset_dir, tokenizer):
     test dataset을 불러온 후,
     tokenizing 합니다.
   """
-  dataset = Preprocess(dataset_dir, 'PUNCT')
+  dataset = Preprocess(dataset_dir)
   test_dataset = dataset.load_data(dataset_dir)
   test_label = list(map(int,test_dataset['label'].values))
   # tokenizing dataset
