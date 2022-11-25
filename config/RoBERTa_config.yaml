@@ -1,0 +1,43 @@
+path:
+    train_path: ./NLP_dataset/train/stratify_train.csv
+    dev_path: ./NLP_dataset/train/stratify_valid.csv # 수정 필요
+    predict_path: ./NLP_dataset/test/test_data.csv
+
+
+exp:
+    exp_name : RoBERTa-large # 변경 해야함!! 실험 이름
+    project_name : lhJoon_exp # 변경 해야함!! 실험 공간 ex) Moongi_exp
+
+data:
+    aug_option : None
+    
+model:
+    model_name: klue/roberta-large
+    saved_name: RoBERTa-large
+    type : base
+
+train:
+    loss_name : 'CE'
+    gpus: 1
+    batch_size: 16
+    max_epoch: 15
+    learning_rate: 5e-5
+    logging_step: 1
+    save_total_limit : 5 # number of total save model.
+    save_steps : 500 # model saving step.
+    warmup_steps : 500 # number of warmup steps for learning rate scheduler
+    weight_decay : 0.01 # strength of weight decay
+    logging_steps : 100  # log saving step.
+    eval_steps : 500 # evaluation step
+    scheduler : 'linear' # linear OR cosine OR steplr
+    metric_for_best_model : 'micro f1 score'
+    patience : 3
+
+
+test:
+    model_dir : ./predict/best_roberta_model
+    prediction : ./predict/best_roberta_model_submission.csv
+
+score:
+    f1_score: 0
+    auprc : 0

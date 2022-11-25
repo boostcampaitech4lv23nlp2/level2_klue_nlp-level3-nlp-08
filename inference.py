@@ -21,7 +21,7 @@ def inference(model, tokenized_sent, device):
   model.eval()
   output_pred = []
   output_prob = []
-  for i, data in enumerate(tqdm(dataloader)):
+  for i, data in enumerate(dataloader):  # tqdm
     with torch.no_grad():
       outputs = model(
           input_ids=data['input_ids'].to(device),
@@ -58,7 +58,7 @@ def load_test_dataset(dataset_dir, tokenizer):
     test dataset을 불러온 후,
     tokenizing 합니다.
   """
-  dataset = Preprocess(dataset_dir, 'PUNCT')
+  dataset = Preprocess(dataset_dir)
   test_dataset = dataset.load_data(dataset_dir)
   test_label = list(map(int,test_dataset['label'].values))
   # tokenizing dataset
