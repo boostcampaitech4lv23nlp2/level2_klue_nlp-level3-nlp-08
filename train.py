@@ -112,9 +112,11 @@ def train():
     torch.save(model.state_dict(),cfg.test.model_dir)  
 
 def main():
-
-  wandb.init(project = cfg.exp.project_name, name=cfg.exp.exp_name, entity='boot4-nlp-08')
-  wandb.config = cfg
+  wandb_cfg = dict()
+  for root_key in cfg.keys():
+      for key in cfg[root_key].keys():
+        wandb_cfg[f'{root_key}.{key}'] = cfg[root_key][key]
+  wandb.init(project = cfg.exp.project_name, name=cfg.exp.exp_name, entity='boot4-nlp-08', config=wandb_cfg)
   train()
 
 if __name__ == '__main__':
