@@ -11,6 +11,10 @@ import argparse
 from tqdm import tqdm
 from omegaconf import OmegaConf
 from models import *
+import datetime
+from utils.metric import label_to_num
+from pytz import timezone
+
 
 def inference(model, tokenized_sent, device):
   """
@@ -104,6 +108,28 @@ def main(cfg):
   output.to_csv(cfg.test.prediction, index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
   #### 필수!! ##############################################
   print('---- Finish! ----')
+  val_process = Preprocess(cfg.path.dev_path)
+  dev_dataset = val_process.data
+  dev_label = label_to_num(dev_dataset['label'].values)
+  tokenized_dev = val_process.tokenized_dataset(dev_dataset, tokenizer)
+  RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+  
+  _, output_prob = inference(model, RE_dev_dataset, device) # model에서 class 추론
+  result = [' '.join(map(lambda x: f'{x:.3f}', out)) for out in output_prob]
+  dev_dataset['output_prob'] = result
+  time = get_time()
+  dev_dataset.to_csv(f"EDA/output/{cfg.exp.exp_name}_{time}.csv", index=False)
+  print('----csv generate Finish! ----')
+  
+def get_time():
+    now = str(datetime.datetime.now(timezone('Asia/Seoul')))
+    date, time = now.split(" ")
+    y, m, d = date.split("-")
+    time = time.split(".")[0]
+    return y[2:]+m+d+"-"+time
+
+
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
