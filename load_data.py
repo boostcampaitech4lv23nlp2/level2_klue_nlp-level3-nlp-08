@@ -39,7 +39,7 @@ class Preprocess:
     return num_label
   
   def tokenized_dataset(self, dataset, tokenizer):
-
+    print(dataset['sentence'].iloc[0:10])
     tokenized_sentences = tokenizer(
         list(dataset['sentence']),
         return_tensors="pt",

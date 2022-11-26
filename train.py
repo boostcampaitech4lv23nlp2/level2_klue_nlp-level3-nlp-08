@@ -76,7 +76,7 @@ def train():
     per_device_eval_batch_size= cfg.train.batch_size,   # batch size for evaluation
     warmup_steps=cfg.train.warmup_steps,                # number of warmup steps for learning rate scheduler
     weight_decay= cfg.train.weight_decay,               # strength of weight decay
-    logging_dir='./logs/logs_BT_AEDA_1124',            # directory for storing logs
+    logging_dir='./logs/logs_klue-roberta-large',       # directory for storing logs
     logging_steps=cfg.train.logging_steps,              # log saving step.
     evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
