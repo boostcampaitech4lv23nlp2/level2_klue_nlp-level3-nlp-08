@@ -1,5 +1,6 @@
 from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from torch.utils.data import DataLoader
+from transformers.modeling_utils import PreTrainedModel
 from load_data import *
 import pandas as pd
 import torch
@@ -85,9 +86,19 @@ def main(cfg):
   elif cfg.model.type == 'CNN':
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == 'enitity':
-    model = auto_models.EntityModel(MODEL_NAME)
-  best_state_dict= torch.load(cfg.test.model_dir)
-  model.load_state_dict(best_state_dict)
+    if cfg.model.model_name == "klue/bert-base":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.BertForSequenceClassification(config)
+    elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.ElectraForSequenceClassification(config)
+
+  if isinstance(model, PreTrainedModel):
+    model = model.from_pretrained('checkpoint', num_labels=30)
+  else:
+    best_state_dict= torch.load(cfg.test.model_dir)
+    model.load_state_dict(best_state_dict)
+    
   model.parameters
   model.to(device)
 

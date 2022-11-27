@@ -59,7 +59,12 @@ def train():
   elif cfg.model.type == "base":
     model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == "entity":
-    model = auto_models.EntityModel(MODEL_NAME)
+    if cfg.model.model_name == "klue/bert-base":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.BertForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+    elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.ElectraForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
 
   model.parameters
   model.to(device)

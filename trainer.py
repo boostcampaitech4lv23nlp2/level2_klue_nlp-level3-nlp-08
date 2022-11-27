@@ -30,8 +30,8 @@ class RE_Trainer(Trainer):
 
         elif self.model_type == 'entity':
             outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'],
-                        attention_mask=inputs['attention_mask'], entity_ids=inputs['entity_ids'])
-            logits = outputs['outputs']
+                        attention_mask=inputs['attention_mask'])
+            logits = outputs['logits']
 
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
