@@ -15,7 +15,7 @@ class CustomBertEmbeddings(nn.Module):
         # Add Entity loc layer
         self.entity_loc_embeddings = nn.Embedding(3, config.hidden_size)
         # Add Entity type layer
-        self.entity_type_embeddings = nn.Embedding(6, config.hidden_size)
+        self.entity_type_embeddings = nn.Embedding(7, config.hidden_size)
 
         # self.LayerNorm is not snake-cased to stick with TensorFlow model variable name and be able to load
         # any TensorFlow checkpoint file
@@ -91,7 +91,7 @@ class CustomElectraEmbeddings(nn.Module):
         # Add Entity loc layer
         self.entity_loc_embeddings = nn.Embedding(3, config.hidden_size)
         # Add Entity type layer
-        self.entity_type_embeddings = nn.Embedding(6, config.hidden_size)
+        self.entity_type_embeddings = nn.Embedding(7, config.hidden_size)
 
         # self.LayerNorm is not snake-cased to stick with TensorFlow model variable name and be able to load
         # any TensorFlow checkpoint file
