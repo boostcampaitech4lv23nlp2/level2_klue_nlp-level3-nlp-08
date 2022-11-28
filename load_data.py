@@ -45,7 +45,7 @@ class Preprocess:
     entity_type_ids = []
 
     for sent, sub_type, obj_type in zip(dataset['sentence'], dataset['subject_type'], dataset['object_type']):
-      current_entity_loc_ids, current_entity_type_ids = self.make_entity_ids(sentence=sent, sub_type=sub_type, obj_type=obj_type, tokenizer=tokenizer)
+      current_entity_loc_ids, current_entity_type_ids = self.make_entity_ids(sentence=sent, tokenizer=tokenizer)
       entity_loc_ids.append(current_entity_loc_ids)
       entity_type_ids.append(current_entity_type_ids)
 
@@ -57,7 +57,9 @@ class Preprocess:
         max_length=256,
         add_special_tokens=True,
         )
-    
+        
+    tokenized_sentences['entity_loc_ids'] = torch.LongTensor(entity_loc_ids)
+    tokenized_sentences['entity_type_ids'] = torch.LongTensor(entity_type_ids)
     return tokenized_sentences
 
   def make_entity_ids(self, sentence, tokenizer):
