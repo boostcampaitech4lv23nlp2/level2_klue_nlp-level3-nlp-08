@@ -59,7 +59,12 @@ def train():
   elif cfg.model.type == "base":
     model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == "entity":
-    model = auto_models.EntityModel(MODEL_NAME)
+    if cfg.model.model_name == "klue/bert-base":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.BertForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+    elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.ElectraForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
 
   model.parameters
   model.to(device)
@@ -76,7 +81,7 @@ def train():
     per_device_eval_batch_size= cfg.train.batch_size,   # batch size for evaluation
     warmup_steps=cfg.train.warmup_steps,                # number of warmup steps for learning rate scheduler
     weight_decay= cfg.train.weight_decay,               # strength of weight decay
-    logging_dir='./logs/logs_BT_AEDA_1124',            # directory for storing logs
+    logging_dir='./logs/logs_klue-roberta-large',       # directory for storing logs
     logging_steps=cfg.train.logging_steps,              # log saving step.
     evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
