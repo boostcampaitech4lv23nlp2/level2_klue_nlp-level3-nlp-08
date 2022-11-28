@@ -2,6 +2,14 @@ import pandas as pd
 from augmentation import *
 import argparse
 
+def replace_token(string):
+    string = string.replace('#', '')
+    string = string.replace('@', '')
+    string = string.replace('^', '')
+    string = string.replace('*', '')
+
+    return string
+
 def load_data(path):
     data = pd.read_csv(path)
 
@@ -10,15 +18,16 @@ def load_data(path):
     sub_idx, obj_idx = [], []
     sentence = []
     match_dict={
-      'PER': '사람',
-      'ORG': '조직',
-      'DAT': '날짜',
-      'LOC': '장소',
-      'POH': '단어',
-      'NOH': '숫자',
+        'PER': '사람',
+        'ORG': '조직',
+        'DAT': '날짜',
+        'LOC': '장소',
+        'POH': '단어',
+        'NOH': '숫자',
     }
 
     for idx, [x, y, z] in enumerate(zip(data['subject_entity'], data['object_entity'], data['sentence'])):
+        x, y, z = replace_token(x), replace_token(y), replace_token(z)
         subT = x[1:-1].split(':')[-1].split('\'')[-2] # Subject Entity의 type
         objT= y[1:-1].split(':')[-1].split('\'')[-2] # Object Entity의 type
         subT, objT = match_dict[subT], match_dict[objT]
@@ -69,14 +78,14 @@ def load_data(path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    train_path = '../NLP_dataset/train/BT_split_train.csv'
-    valid_path = '../NLP_dataset/train/BT_split_valid.csv'
+    train_path = '../NLP_dataset/train/BT_split_train_final.csv'
+    valid_path = '../NLP_dataset/train/BT_split_valid_final.csv'
     test_path = '../NLP_dataset/test/test_data.csv'
 
     train_preprocess = load_data(train_path)
     valid_preprocess = load_data(valid_path)
     test_preprocess = load_data(test_path)
-    pd.DataFrame(train_preprocess).to_csv(f'../NLP_dataset/train/BT_train_preprocess.csv')
-    pd.DataFrame(valid_preprocess).to_csv(f'../NLP_dataset/train/BT_valid_preprocess.csv')
-    pd.DataFrame(test_preprocess).to_csv(f'../NLP_dataset/test/BT_test_preprocess.csv')
+    pd.DataFrame(train_preprocess).to_csv(f'../NLP_dataset/train/BT_train_preprocess_final.csv')
+    pd.DataFrame(valid_preprocess).to_csv(f'../NLP_dataset/train/final_valid_data.csv')
+    pd.DataFrame(test_preprocess).to_csv(f'../NLP_dataset/test/final_test_data.csv')
     
