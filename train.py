@@ -9,7 +9,8 @@ from transformers import (
   Trainer, 
   TrainingArguments, 
   RobertaConfig, 
-  RobertaTokenizer, 
+  RobertaTokenizer,
+  RobertaModel,
   RobertaForSequenceClassification, 
   BertTokenizer,
   get_scheduler,
@@ -65,7 +66,11 @@ def train():
     elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
       config = AutoConfig.from_pretrained(MODEL_NAME)
       model = custom_model.ElectraForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
-
+  elif cfg.model.type == 'xlm':
+    model = auto_models.RE_Model(MODEL_NAME)
+  elif cfg.model.type == 'r-roberta':
+    feature_model = RobertaModel.from_pretrained('xlm-roberta-large', add_pooling_layer=False)
+    model = r_roberta_Classifier(feature_model, dr_rate=0.1)
   model.parameters
   model.to(device)
   
