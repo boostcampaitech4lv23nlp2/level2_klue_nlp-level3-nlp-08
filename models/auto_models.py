@@ -35,6 +35,7 @@ class CNN_Model(nn.Module):
         self.pooling_layers = nn.ModuleList([nn.MaxPool1d(256-i+1) for i in range(2,12)])
         self.linear1 = nn.Linear(1000,500)
         self.linear2 = nn.Linear(500,30)
+        self.dropout = nn.Dropout(p=0.5)
 
     def forward(self,**batch):
         inputs = {'input_ids':batch.get('input_ids'),'token_type_ids':batch.get('token_type_ids'),'attention_mask':batch.get('attention_mask')}
@@ -51,7 +52,8 @@ class CNN_Model(nn.Module):
         y = torch.cat(tmp,axis=1).squeeze() # (Batch , 600)
 
         y = self.linear1(y)
-        y = torch.relu(y)
+        y = torch.sigmoid(y)
+        y = self.dropout(y)
         logits = self.linear2(y) # (Batch, 300)
 
         return {'logits':logits}

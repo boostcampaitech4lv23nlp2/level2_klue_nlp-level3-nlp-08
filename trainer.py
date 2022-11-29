@@ -33,6 +33,13 @@ class RE_Trainer(Trainer):
                         attention_mask=inputs['attention_mask'], entity_ids=inputs['entity_ids'])
             logits = outputs['outputs']
 
+        elif self.model_type=='rbert':
+            sub_mask = inputs['sub_ids']
+            obj_mask = inputs['obj_ids']
+            inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask')}
+            outputs = model(sub_mask,obj_mask,**inputs)
+            logits = outputs.get("logits")
+            
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
           loss_fct = nn.CrossEntropyLoss()

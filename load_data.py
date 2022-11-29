@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import torch
 import tqdm
+from utils import make_entity_ids
 
 
 class RE_Dataset(torch.utils.data.Dataset):
@@ -14,6 +15,24 @@ class RE_Dataset(torch.utils.data.Dataset):
   def __getitem__(self, idx):
     item = {key: val[idx].clone().detach() for key, val in self.pair_dataset.items()}
     item['labels'] = torch.tensor(self.labels[idx])
+    return item
+
+  def __len__(self):
+    return len(self.labels)
+
+class RBERT_Dataset(torch.utils.data.Dataset):
+  """ Dataset 구성을 위한 class."""
+  def __init__(self, pair_dataset, labels,sub_ids,obj_ids):
+    self.pair_dataset = pair_dataset
+    self.labels = labels
+    self.sub_ids = sub_ids
+    self.obj_ids = obj_ids
+
+  def __getitem__(self, idx):
+    item = {key: val[idx].clone().detach() for key, val in self.pair_dataset.items()}
+    item['labels'] = torch.tensor(self.labels[idx])
+    item['sub_ids'] = torch.tensor(self.sub_ids[idx])
+    item['obj_ids'] = torch.tensor(self.obj_ids[idx])
     return item
 
   def __len__(self):
@@ -38,15 +57,63 @@ class Preprocess:
         
     return num_label
   
-  def tokenized_dataset(self, dataset, tokenizer):
+  def tokenized_dataset(self, dataset, tokenizer,type,test=False):
+    if type == 'rbert':
+      sub_list = []
+      obj_list = []
 
-    tokenized_sentences = tokenizer(
-        list(dataset['sentence']),
-        return_tensors="pt",
-        padding="max_length",
-        truncation=True,
-        max_length=256,
-        add_special_tokens=True,
-        )
+      for sent in dataset['sentence']:
+        sub_id,obj_id = make_entity_ids.make_ent_ids(tokenizer,sent)
+        sub_list.append(sub_id)
+        obj_list.append(obj_id)
+      if test:
+        tmp = []
+        for e01,e02 in zip(dataset['subject_entity'],dataset['object_entity']):
+          ex = f"{e01} 와(과) {e02} 의 관계는? : "
+          tmp.append(ex)
+        tokenized_sentences = tokenizer(
+            tmp,
+            list(dataset['sentence']),
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            add_special_tokens=True,
+            )
+      else:
+        tokenized_sentences = tokenizer(
+            list(dataset['sentence']),
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            add_special_tokens=True,
+            )
+      return tokenized_sentences,sub_list,obj_list
+
+    else:
+      if test:
+        tmp = []
+        for e01,e02 in zip(dataset['subject_entity'],dataset['object_entity']):
+          ex = f"{e01} 와(과) {e02} 의 관계는? : "
+          tmp.append(ex)
+        tokenized_sentences = tokenizer(
+            list(dataset['sentence']),
+            tmp,
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            add_special_tokens=True,
+            )
+      else:
+        tokenized_sentences = tokenizer(
+            list(dataset['sentence']),
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            add_special_tokens=True,
+            )
     
-    return tokenized_sentences
+      return tokenized_sentences
