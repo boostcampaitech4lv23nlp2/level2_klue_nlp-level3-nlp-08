@@ -68,9 +68,7 @@ def train():
       model = custom_model.ElectraForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
   elif cfg.model.type == 'xlm':
     model = auto_models.RE_Model(MODEL_NAME)
-  elif cfg.model.type == 'r-roberta':
-    feature_model = RobertaModel.from_pretrained('xlm-roberta-large', add_pooling_layer=False)
-    model = r_roberta_Classifier(feature_model, dr_rate=0.1)
+
   model.parameters
   model.to(device)
   
@@ -105,8 +103,7 @@ def train():
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
     eval_dataset=RE_dev_dataset,       # evaluation dataset
-    loss_name = cfg.train.loss_name,
-    scheduler = cfg.train.scheduler,                   
+    loss_name = cfg.train.loss_name,                  
     compute_metrics=compute_metrics,      # define metrics function
     num_training_steps = 3 * len(train_dataset),
     #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
