@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import torch
 import tqdm
+import numpy as np
 
 
 class RE_Dataset(torch.utils.data.Dataset):
@@ -67,10 +68,6 @@ class Preprocess:
     entity_loc_ids = [0] * 256
     entity_type_ids = [0] * 256
 
-    sbj_symbols = '@'
-    obj_symbols = '#'
-    type_symbols = [['*'], ['^']]
-
     type_to_num={
         '사람': 1,
         '조직': 2,
@@ -81,35 +78,16 @@ class Preprocess:
       }
 
     tokenized_sentence = tokenizer.tokenize(sentence, padding="max_length", truncation=True, max_length=256, add_special_tokens=True)
-    sbj_check = False
-    obj_check = False
-    type_check = 0
-    for i, token in enumerate(tokenized_sentence):
-        if token == sbj_symbols:
-            if tokenized_sentence[i+1:i+2] in type_symbols and sbj_check == False:
-                sbj_check = True
-            elif sbj_check:
-                sbj_check = False
-                type_check = 0
-            
-        elif (sbj_check or obj_check) and [token] in type_symbols:
-            type_check += 1
+    tokenized_sentence = np.array(tokenized_sentence)
+    sub_indices = np.where(tokenized_sentence == '@')[0]
+    sub_type_indices = np.where(tokenized_sentence == '*')[0]
+    obj_indices = np.where(tokenized_sentence == '#')[0]
+    obj_type_indices = np.where(tokenized_sentence == '^')[0]
 
-        elif sbj_check and type_check==2:
-            entity_loc_ids[i] = 1
-        
-        elif token == obj_symbols:
-            if tokenized_sentence[i+1:i+2] in type_symbols and obj_check == False: 
-                obj_check = True
+    entity_loc_ids[sub_type_indices[-1]+1: sub_indices[-1]] = [1] * (sub_indices[-1] - sub_type_indices[-1]-1)
+    entity_loc_ids[obj_type_indices[-1]+1: obj_indices[-1]] = [2] * (obj_indices[-1] - obj_type_indices[-1]-1) 
 
-            elif obj_check:
-                obj_check = False
-                type_check = 0
-
-        elif obj_check and type_check==2:
-            entity_loc_ids[i] = 2
-            
-        elif type_check == 1:
-            entity_type_ids[i] = type_to_num[token]
+    entity_type_ids[sub_type_indices[0]+1] = type_to_num[tokenized_sentence[sub_type_indices[0]+1]]
+    entity_type_ids[obj_type_indices[0]+1] = type_to_num[tokenized_sentence[obj_type_indices[0]+1]]
             
     return entity_loc_ids, entity_type_ids
