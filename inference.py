@@ -32,7 +32,7 @@ def inference(model, tokenized_sent, device):
           attention_mask=data['attention_mask'].to(device),
           token_type_ids=data['token_type_ids'].to(device)
           )
-    if cfg.model.type == 'CNN':
+    if cfg.model.type == 'CNN' or cfg.model.type == 'CT' :
       logits = outputs.get('logits')
     elif cfg.model.type == 'base':
       logits = outputs[0]
@@ -86,6 +86,8 @@ def main(cfg):
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == 'enitity':
     model = auto_models.EntityModel(MODEL_NAME)
+  elif cfg.model.type == 'CT':
+    model = auto_models.CT_Model(MODEL_NAME)
   best_state_dict= torch.load(cfg.test.model_dir)
   model.load_state_dict(best_state_dict)
   model.parameters

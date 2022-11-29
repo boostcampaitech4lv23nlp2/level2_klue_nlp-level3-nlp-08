@@ -24,6 +24,56 @@ class RE_Model(nn.Module):
         outputs = self.plm(**batch)
         return outputs
 
+
+class DAE_CT_Model(nn.Module):
+    def __init__(self, MODEL_NAME:str, plm):
+        super().__init__()
+        self.num_labels = 30
+        self.MODEL_NAME = MODEL_NAME
+        # plm 모델 설정
+        self.plm = plm
+        for param in self.plm.parameters():
+            param.requires_grad = False
+        self.activation = torch.nn.ELU(alpha=1.0)
+        self.hidden_size = self.plm.plm.config.hidden_size
+        self.final_linear = nn.Linear(256, self.num_labels)
+        self.tying_linear = nn.Linear(self.hidden_size, 256, bias=False)
+        self.bottleneck_model = nn.Sequential(
+            torch.nn.ELU(alpha=1.0),
+            nn.Linear(256, 128),
+            torch.nn.ELU(alpha=1.0),
+            nn.Linear(128, 256),
+            torch.nn.ELU(alpha=1.0),
+        )     
+    def forward(self, **batch):
+        ori_embedding = self.plm(**batch)['embedding']
+        ori_logits = self.plm(**batch)['logits']
+        bottleneck_input = self.tying_linear(ori_embedding)
+        logits = self.activation(bottleneck_input)
+        logits = self.final_linear(logits)
+        output = self.bottleneck_model(bottleneck_input)
+        out_embedding = torch.matmul(output, self.tying_linear.weight)   
+        return {'logits': logits, 'embedding': out_embedding, 'ori_embedding': ori_embedding}  
+
+class CT_Model(nn.Module):
+    def __init__(self, MODEL_NAME:str):
+        super().__init__()
+        self.num_labels = 30
+        self.MODEL_NAME = MODEL_NAME
+        # plm 모델 설정
+        self.plm = AutoModel.from_pretrained(self.MODEL_NAME)
+        self.dropout = nn.Dropout(0.4)
+        self.linear = nn.Linear(self.plm.config.hidden_size, self.num_labels)
+        self.softmax = nn.LogSoftmax(dim=-1)
+ 
+    def forward(self, **batch):
+        pooler_output = self.plm(**batch).pooler_output
+        dropout_output = self.dropout(pooler_output)
+        linear_outputs = self.linear(dropout_output)
+
+        return {'logits': linear_outputs, 'embedding': pooler_output}  
+    
+    
 class CNN_Model(nn.Module):
     def __init__(self,MODEL_NAME):
         super().__init__()

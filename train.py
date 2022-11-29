@@ -26,6 +26,7 @@ from omegaconf import OmegaConf
 import argparse
 import wandb
 from transformers import logging
+from utils import CustomCallback
 
 logging.set_verbosity_error()
 def train():
@@ -60,7 +61,16 @@ def train():
     model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == "entity":
     model = auto_models.EntityModel(MODEL_NAME)
-
+  elif cfg.model.type == "CT":
+    model = auto_models.CT_Model(MODEL_NAME)
+  elif cfg.model.type == "DAE_CT":
+    plm = auto_models.CT_Model(cfg.model.CT_model_name)
+    plm.load_state_dict(torch.load(cfg.model.CT_model_dir))
+    model = auto_models.DAE_CT_Model(MODEL_NAME, plm)
+      
+  if cfg.test.model_dir != 'None':  
+    best_state_dict= torch.load(cfg.test.model_dir)
+    model.load_state_dict(best_state_dict)
   model.parameters
   model.to(device)
   
@@ -89,27 +99,38 @@ def train():
     report_to='wandb',
     disable_tqdm = False
   )
-  
-  trainer = RE_Trainer(
-    model=model,                         # the instantiated 🤗 Transformers model to be trained
-    args=training_args,                  # training arguments, defined above
-    train_dataset=RE_train_dataset,      # training dataset
-    eval_dataset=RE_dev_dataset,       # evaluation dataset
-    loss_name = cfg.train.loss_name,
-    scheduler = cfg.train.scheduler,                   
-    compute_metrics=compute_metrics,      # define metrics function
-    num_training_steps = 3 * len(train_dataset),
-    #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
-    model_type = cfg.model.type
-  )
+  if cfg.train.trainer == "RE_Trainer":
+    trainer = RE_Trainer(
+      model=model,                         # the instantiated 🤗 Transformers model to be trained
+      args=training_args,                  # training arguments, defined above
+      train_dataset=RE_train_dataset,      # training dataset
+      eval_dataset=RE_dev_dataset,       # evaluation dataset
+      loss_name = cfg.train.loss_name,
+      scheduler = cfg.train.scheduler,                   
+      compute_metrics=compute_metrics,      # define metrics function
+      num_training_steps = 3 * len(train_dataset),
+      #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
+      model_type = cfg.model.type
+    )
+  elif cfg.train.trainer == "CT_Trainer":
+    trainer = CT_Trainer(
+      model=model,                         # the instantiated 🤗 Transformers model to be trained
+      args=training_args,                  # training arguments, defined above
+      train_dataset=RE_train_dataset,      # training dataset
+      eval_dataset=RE_dev_dataset,       # evaluation dataset
+      loss_name = cfg.train.loss_name,
+      scheduler = cfg.train.scheduler,                   
+      compute_metrics=CT_compute_metrics,      # define metrics function
+      num_training_steps = 3 * len(train_dataset),
+      callbacks=[CustomCallback],
+      model_type = cfg.model.type
+      )
+  else:
+    raise ValueError
 
   # train model
   wandb.watch(model)
   trainer.train()
-  try:
-    model.save_pretrained(cfg.test.model_dir)
-  except:
-    torch.save(model.state_dict(),cfg.test.model_dir)  
 
 def main():
   wandb_cfg = dict()
@@ -120,6 +141,7 @@ def main():
   train()
 
 if __name__ == '__main__':
+  os.chdir(os.path.dirname(os.path.abspath(__file__)))
   parser = argparse.ArgumentParser()
   parser.add_argument('--config',type=str,default='base_config')
   args , _ = parser.parse_known_args()

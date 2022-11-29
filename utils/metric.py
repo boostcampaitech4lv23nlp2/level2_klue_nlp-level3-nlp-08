@@ -7,6 +7,7 @@ import torch.backends.cudnn as cudnn
 import random
 
 
+tSNE_counter = 0
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -42,6 +43,30 @@ def klue_re_auprc(probs, labels):
     
     return np.average(score) * 100.0
 
+def CT_compute_metrics(pred):
+  """ validation을 위한 metrics function """
+  labels = pred.label_ids # 3240
+  probs, embedding, *_ = pred.predictions
+  preds = probs.argmax(-1) # 51 
+
+  answer = []
+  for i in range(30):
+    union = np.union1d(np.where(preds == i), np.where(labels == i))
+    answer.append(np.mean(np.where(preds[union] == labels[union], 1, 0)))
+  # calculate accuracy using sklearn's function
+  f1 = klue_re_micro_f1(preds, labels)
+  auprc = klue_re_auprc(probs, labels)
+  acc = accuracy_score(labels, preds) # 리더보드 평가에는 포함되지 않습니다.
+  return {
+      'micro f1 score': f1,
+      'auprc' : auprc,
+      'accuracy': acc,
+      'embedding': embedding,
+      'labels': labels,
+      'answer' : answer,
+      'preds' : preds
+  }
+  
 def compute_metrics(pred):
   """ validation을 위한 metrics function """
   labels = pred.label_ids # 3240
