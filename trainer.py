@@ -75,8 +75,8 @@ class RE_Trainer(Trainer):
           ntxent_loss = NTXentLoss(temperature=0.5)
           bottleneck_loss = torch.nn.CosineEmbeddingLoss()
           target = torch.Tensor(embedding.size(0)).cuda().fill_(1.0)
-          loss = 0.8*loss + 0.2*bottleneck_loss(embedding, ori_embedding, target)
-          loss = 0.8*loss + 0.2*ntxent_loss(embedding, labels)
+          #loss = 0.8*loss + 0.2*bottleneck_loss(embedding, ori_embedding, target)
+          #loss = 0.8*loss + 0.2*ntxent_loss(embedding, labels)
         else:
           loss = loss_fct(logits.view(-1, 30), labels.view(-1))
         return (loss, outputs) if return_outputs else loss

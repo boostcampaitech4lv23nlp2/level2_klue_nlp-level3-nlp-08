@@ -33,7 +33,7 @@ class DAE_CT_Model(nn.Module):
         # plm 모델 설정
         self.plm = plm
         for param in self.plm.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         self.activation = torch.nn.ELU(alpha=1.0)
         self.hidden_size = self.plm.plm.config.hidden_size
         self.final_linear = nn.Linear(256, self.num_labels)
@@ -49,10 +49,9 @@ class DAE_CT_Model(nn.Module):
         ori_embedding = self.plm(**batch)['embedding']
         ori_logits = self.plm(**batch)['logits']
         bottleneck_input = self.tying_linear(ori_embedding)
-        logits = self.activation(bottleneck_input)
-        logits = self.final_linear(logits)
         output = self.bottleneck_model(bottleneck_input)
-        out_embedding = torch.matmul(output, self.tying_linear.weight)   
+        out_embedding = torch.matmul(output, self.tying_linear.weight)  
+        logits = self.final_linear(bottleneck_input)
         return {'logits': logits, 'embedding': out_embedding, 'ori_embedding': ori_embedding}  
 
 class CT_Model(nn.Module):
