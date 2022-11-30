@@ -10,7 +10,7 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 from omegaconf import OmegaConf
-from models import auto_models,R_BERT
+from models import auto_models,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM
 import datetime
 from utils.metric import label_to_num
 from pytz import timezone
@@ -42,7 +42,7 @@ def inference(model, tokenized_sent, device):
     if cfg.model.type == 'CNN':
       logits = outputs.get('logits')
     elif cfg.model.type == 'base':
-      logits = outputs[0]
+      logits = outputs.get('logits')
     elif cfg.model.type == 'rbert':
       logits = outputs.get('logits')
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
@@ -86,7 +86,7 @@ def main(cfg):
   """
     주어진 dataset csv 파일과 같은 형태일 경우 inference 가능한 코드입니다.
   """
-  device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+  device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu') #'cuda:0' if torch.cuda.is_available() else 
   # load tokenizer
   Tokenizer_NAME = cfg.model.model_name
   tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
@@ -94,13 +94,21 @@ def main(cfg):
   ## load my model
   MODEL_NAME = cfg.model.model_name # model dir.
   if cfg.model.type == 'base':
-    model = auto_models.RE_Model(MODEL_NAME)
+    if cfg.model.type2 == "lstm":
+      model = RoBERTa_BiLSTM.RoBERTa_BiLSTM(MODEL_NAME)
+    else:
+      model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == 'CNN':
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == 'enitity':
     model = auto_models.EntityModel(MODEL_NAME)
   elif cfg.model.type =='rbert':
-    model = R_BERT.RBERT(MODEL_NAME)
+    if cfg.model.type2 == 'lstm':
+      model = R_BERT_BiLSTM.RBERT(MODEL_NAME)
+    elif cfg.model.type2 == 'cnn':
+      model = R_BERT_CNN.RBERT(MODEL_NAME)
+    else:
+      model = R_BERT.RBERT(MODEL_NAME)
   best_state_dict= torch.load(cfg.test.model_dir)
   model.load_state_dict(best_state_dict)
   model.parameters

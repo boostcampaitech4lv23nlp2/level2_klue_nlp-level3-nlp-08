@@ -57,7 +57,7 @@ class Preprocess:
         
     return num_label
   
-  def tokenized_dataset(self, dataset, tokenizer,type,test=False):
+  def tokenized_dataset(self, dataset, tokenizer,type=False,test=False):
     if type == 'rbert':
       sub_list = []
       obj_list = []
@@ -68,8 +68,8 @@ class Preprocess:
         obj_list.append(obj_id)
       if test:
         tmp = []
-        for e01,e02 in zip(dataset['subject_entity'],dataset['object_entity']):
-          ex = f"{e01} 와(과) {e02} 의 관계는? : "
+        for e01,e02,e03,e04 in zip(dataset['subject_entity'],dataset['object_entity'],dataset['subject_type'],dataset['object_type']):
+          ex = f"@*{e03}*{e01}@ 와(과) #^{e04}^{e02}# 의 관계"
           tmp.append(ex)
         tokenized_sentences = tokenizer(
             tmp,
@@ -77,7 +77,7 @@ class Preprocess:
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=256,
+            max_length=160,
             add_special_tokens=True,
             )
       else:
@@ -86,7 +86,7 @@ class Preprocess:
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=256,
+            max_length=160,
             add_special_tokens=True,
             )
       return tokenized_sentences,sub_list,obj_list
@@ -94,16 +94,16 @@ class Preprocess:
     else:
       if test:
         tmp = []
-        for e01,e02 in zip(dataset['subject_entity'],dataset['object_entity']):
-          ex = f"{e01} 와(과) {e02} 의 관계는? : "
+        for e01,e02,e03,e04 in zip(dataset['subject_entity'],dataset['object_entity'],dataset['subject_type'],dataset['object_type']):
+          ex = f"@*{e03}*{e01}@ 와(과) #^{e04}^{e02}# 의 관계"
           tmp.append(ex)
         tokenized_sentences = tokenizer(
-            list(dataset['sentence']),
             tmp,
+            list(dataset['sentence']),
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=256,
+            max_length=160,
             add_special_tokens=True,
             )
       else:
@@ -112,7 +112,7 @@ class Preprocess:
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=256,
+            max_length=160,
             add_special_tokens=True,
             )
     

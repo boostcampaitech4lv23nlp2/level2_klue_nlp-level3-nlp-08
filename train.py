@@ -19,7 +19,7 @@ from load_data import *
 from utils.augmentation import *
 import random
 from utils.metric import *
-from models import auto_models,R_BERT
+from models import auto_models,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM
 from trainer import *
 import yaml
 from omegaconf import OmegaConf
@@ -63,11 +63,20 @@ def train():
   if cfg.model.type == "CNN":
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == "base":
-    model =  auto_models.RE_Model(MODEL_NAME)
+    if cfg.model.type2 == "lstm":
+      model = RoBERTa_BiLSTM.RoBERTa_BiLSTM(MODEL_NAME)
+    else:
+      model =  auto_models.RE_Model(MODEL_NAME)
+
   elif cfg.model.type == "entity":
     model = auto_models.EntityModel(MODEL_NAME)
   elif cfg.model.type == "rbert":
-    model = R_BERT.RBERT(MODEL_NAME)
+    if cfg.model.type2 == "lstm":
+      model = R_BERT_BiLSTM.RBERT(MODEL_NAME)
+    elif cfg.model.type2 == "cnn":
+      model = R_BERT_CNN.RBERT(MODEL_NAME)
+    else:
+      model = R_BERT.RBERT(MODEL_NAME)
 
   model.parameters
   model.to(device)

@@ -27,8 +27,10 @@ class RBERT(nn.Module):
         self.hidden_size = self.model_config.hidden_size
         self.num_labels = 30
 
+        self.lstm= nn.LSTM(input_size= self.hidden_size, hidden_size= self.hidden_size, num_layers= 2, dropout= 0.2,
+                           batch_first= True, bidirectional= True)
         self.cls_fc_layer = FCLayer(self.hidden_size, self.hidden_size) # 768 , 768 
-        self.entity_fc_layer = FCLayer(self.hidden_size, self.hidden_size) # 768 , 768
+        self.entity_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768
         self.label_classifier = FCLayer(
             self.hidden_size * 3,
             30,
@@ -57,10 +59,13 @@ class RBERT(nn.Module):
         outputs = self.Backbone(**inputs)  # sequence_output, pooled_output, (hidden_states), (attentions)
         sequence_output = outputs[0]
         pooled_output = outputs[1]  # [CLS]
+        # LSTM
+        lstm_outputs,(lstm_hidden_state,lstm_cell_state) = self.lstm(sequence_output)
+        #print(lstm_outputs.shape)
         # Average
-        e1_h = self.entity_average(sequence_output, e1_mask)
-        e2_h = self.entity_average(sequence_output, e2_mask)
-
+        e1_h = self.entity_average(lstm_outputs, e1_mask)
+        e2_h = self.entity_average(lstm_outputs, e2_mask)
+        #print(e1_h.shape,e2_h.shape)
         # Dropout -> tanh -> fc_layer (Share FC layer for e1 and e2)
         pooled_output = self.cls_fc_layer(pooled_output)
         e1_h = self.entity_fc_layer(e1_h)

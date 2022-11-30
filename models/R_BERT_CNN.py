@@ -26,9 +26,10 @@ class RBERT(nn.Module):
         self.model_config = AutoConfig.from_pretrained(self.MODEL_NAME)
         self.hidden_size = self.model_config.hidden_size
         self.num_labels = 30
-
-        self.cls_fc_layer = FCLayer(self.hidden_size, self.hidden_size) # 768 , 768 
-        self.entity_fc_layer = FCLayer(self.hidden_size, self.hidden_size) # 768 , 768
+        self.cnn_layers = nn.ModuleList([nn.Conv1d(in_channels=self.hidden_size,out_channels=self.hidden_size,kernel_size=3,padding=1),
+                                         nn.Conv1d(in_channels=self.hidden_size,out_channels=self.hidden_size,kernel_size=5,padding=2)])
+        self.cls_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768 
+        self.entity_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768
         self.label_classifier = FCLayer(
             self.hidden_size * 3,
             30,
@@ -55,12 +56,19 @@ class RBERT(nn.Module):
     def forward(self, e1_mask, e2_mask,**batch):
         inputs = {'input_ids':batch.get('input_ids'),'token_type_ids':batch.get('token_type_ids'),'attention_mask':batch.get('attention_mask')}
         outputs = self.Backbone(**inputs)  # sequence_output, pooled_output, (hidden_states), (attentions)
-        sequence_output = outputs[0]
-        pooled_output = outputs[1]  # [CLS]
+        sequence_output = outputs[0].transpose(1,2) # last_hidden_state
+        #pooled_output = outputs[1]  # [CLS]
+        #CNN
+        sequence_output_3 = torch.tanh(self.cnn_layers[0](sequence_output)).transpose(1,2)
+        sequence_output_5 = torch.tanh(self.cnn_layers[1](sequence_output)).transpose(1,2)
+        sequence_output = torch.cat([sequence_output_3,sequence_output_5],dim = 2) # B , L , H*2
+        # [CLS]
+        pooled_output = sequence_output[:,0,:].squeeze()
+
         # Average
         e1_h = self.entity_average(sequence_output, e1_mask)
         e2_h = self.entity_average(sequence_output, e2_mask)
-
+        #print(e1_h.shape,e2_h.shape)
         # Dropout -> tanh -> fc_layer (Share FC layer for e1 and e2)
         pooled_output = self.cls_fc_layer(pooled_output)
         e1_h = self.entity_fc_layer(e1_h)
