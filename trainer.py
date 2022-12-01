@@ -15,6 +15,7 @@ class RE_Trainer(Trainer):
         self.model_type = model_type
 
     def compute_loss(self, model, inputs, return_outputs=False):
+        torch.cuda.empty_cache()
         labels = inputs.get("labels")
 
         # forward pass
@@ -39,7 +40,11 @@ class RE_Trainer(Trainer):
             inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask')}
             outputs = model(sub_mask,obj_mask,**inputs)
             logits = outputs.get("logits")
-            
+        
+        elif self.model_type == 'xlm':
+            inputs = {'input_ids':inputs.get('input_ids'),'attention_mask':inputs.get('attention_mask'),'labels':inputs.get('labels')}
+            outputs = model(**inputs)
+            logits = outputs.get("logits")
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
           loss_fct = nn.CrossEntropyLoss()

@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 import tqdm
 from utils import make_entity_ids
+import numpy as np
 
 
 class RE_Dataset(torch.utils.data.Dataset):
@@ -91,6 +92,30 @@ class Preprocess:
             )
       return tokenized_sentences,sub_list,obj_list
 
+    elif type == 'entity':
+      print(dataset['sentence'].iloc[0:10])
+
+      entity_loc_ids = []
+      entity_type_ids = []
+
+      for sent, sub_type, obj_type in zip(dataset['sentence'], dataset['subject_type'], dataset['object_type']):
+        current_entity_loc_ids, current_entity_type_ids = make_entity_ids.make_entity_ids(sentence=sent, tokenizer=tokenizer)
+        entity_loc_ids.append(current_entity_loc_ids)
+        entity_type_ids.append(current_entity_type_ids)
+
+      tokenized_sentences = tokenizer(
+          list(dataset['sentence']),
+          return_tensors="pt",
+          padding="max_length",
+          truncation=True,
+          max_length=256,
+          add_special_tokens=True,
+          )
+        
+      tokenized_sentences['entity_loc_ids'] = torch.LongTensor(entity_loc_ids)
+      tokenized_sentences['entity_type_ids'] = torch.LongTensor(entity_type_ids)
+      return tokenized_sentences
+
     else:
       if test:
         tmp = []
@@ -117,3 +142,4 @@ class Preprocess:
             )
     
       return tokenized_sentences
+

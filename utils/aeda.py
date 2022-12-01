@@ -103,10 +103,10 @@ def aeda(args, train_df, check_num):
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_file', type=str, default='BT_AEDA_train.csv')
+    parser.add_argument('--train_file', type=str, default='BT_AEDA_train_final.csv')
     args = parser.parse_args()
 
-    train_path = '../NLP_dataset/train/BT_train_preprocess.csv'
+    train_path = '../NLP_dataset/train/BT_train_preprocess_final.csv'
     train_dataset = pd.read_csv(train_path, index_col=0)
     aeda(args, train_dataset, 2)
 

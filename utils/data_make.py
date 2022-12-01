@@ -37,5 +37,5 @@ if __name__ == '__main__':
             
     print(len(val_out), len(train_out))
 
-    pd.DataFrame(train_out).to_csv(f"../NLP_dataset/train/BT_split_train.csv", index=False)
-    pd.DataFrame(val_out).to_csv(f"../NLP_dataset/train/BT_split_valid.csv", index=False)
+    pd.DataFrame(train_out).to_csv(f"../NLP_dataset/train/BT_split_train_final.csv", index=False)
+    pd.DataFrame(val_out).to_csv(f"../NLP_dataset/train/BT_split_valid_final.csv", index=False)

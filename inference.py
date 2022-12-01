@@ -1,5 +1,6 @@
 from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from torch.utils.data import DataLoader
+from transformers.modeling_utils import PreTrainedModel
 from load_data import *
 import pandas as pd
 import torch
@@ -10,7 +11,7 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 from omegaconf import OmegaConf
-from models import auto_models,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM
+from models import auto_models,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM,custom_embedding,custom_model
 import datetime
 from utils.metric import label_to_num
 from pytz import timezone
@@ -101,7 +102,12 @@ def main(cfg):
   elif cfg.model.type == 'CNN':
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == 'enitity':
-    model = auto_models.EntityModel(MODEL_NAME)
+    if cfg.model.model_name == "klue/bert-base":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.BertForSequenceClassification(config)
+    elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.ElectraForSequenceClassification(config)
   elif cfg.model.type =='rbert':
     if cfg.model.type2 == 'lstm':
       model = R_BERT_BiLSTM.RBERT(MODEL_NAME)
@@ -109,8 +115,14 @@ def main(cfg):
       model = R_BERT_CNN.RBERT(MODEL_NAME)
     else:
       model = R_BERT.RBERT(MODEL_NAME)
-  best_state_dict= torch.load(cfg.test.model_dir)
-  model.load_state_dict(best_state_dict)
+
+  if isinstance(model, PreTrainedModel):
+    model = model.from_pretrained('checkpoint', num_labels=30)
+  else:
+    best_state_dict= torch.load(cfg.test.model_dir)
+    model.load_state_dict(best_state_dict)
+
+  
   model.parameters
   model.to(device)
 

@@ -9,7 +9,8 @@ from transformers import (
   Trainer, 
   TrainingArguments, 
   RobertaConfig, 
-  RobertaTokenizer, 
+  RobertaTokenizer,
+  RobertaModel,
   RobertaForSequenceClassification, 
   BertTokenizer,
   get_scheduler,
@@ -19,7 +20,7 @@ from load_data import *
 from utils.augmentation import *
 import random
 from utils.metric import *
-from models import auto_models,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM
+from models import auto_models,custom_embedding,custom_model,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM
 from trainer import *
 import yaml
 from omegaconf import OmegaConf
@@ -51,6 +52,13 @@ def train():
     tokenized_dev,dev_sub_ids,dev_obj_ids = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = cfg.model.type,test=cfg.data.mode)
     RE_train_dataset = RBERT_Dataset(tokenized_train, train_label,train_sub_ids,train_obj_ids)
     RE_dev_dataset = RBERT_Dataset(tokenized_dev, dev_label,dev_sub_ids,dev_obj_ids)
+
+  elif cfg.model.type == "entity":
+    tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type='entity',test=cfg.data.mode)
+    tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = 'entity',test=cfg.data.mode)
+    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+    
   else:
     tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type=cfg.model.type,test=cfg.data.mode)
     tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = cfg.model.type,test=cfg.data.mode)
@@ -69,7 +77,16 @@ def train():
       model =  auto_models.RE_Model(MODEL_NAME)
 
   elif cfg.model.type == "entity":
-    model = auto_models.EntityModel(MODEL_NAME)
+    if cfg.model.model_name == "klue/bert-base":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.BertForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+    elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.ElectraForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+
+  elif cfg.model.type == 'xlm':
+    model = auto_models.RE_Model(MODEL_NAME)
+
   elif cfg.model.type == "rbert":
     if cfg.model.type2 == "lstm":
       model = R_BERT_BiLSTM.RBERT(MODEL_NAME)
@@ -77,7 +94,6 @@ def train():
       model = R_BERT_CNN.RBERT(MODEL_NAME)
     else:
       model = R_BERT.RBERT(MODEL_NAME)
-
   model.parameters
   model.to(device)
   
@@ -93,7 +109,7 @@ def train():
     per_device_eval_batch_size= cfg.train.batch_size,   # batch size for evaluation
     warmup_steps=cfg.train.warmup_steps,                # number of warmup steps for learning rate scheduler
     weight_decay= cfg.train.weight_decay,               # strength of weight decay
-    logging_dir='./logs/logs_BT_AEDA_1124',            # directory for storing logs
+    logging_dir='./logs/logs_klue-roberta-large',       # directory for storing logs
     logging_steps=cfg.train.logging_steps,              # log saving step.
     evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
@@ -112,8 +128,7 @@ def train():
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
     eval_dataset=RE_dev_dataset,       # evaluation dataset
-    loss_name = cfg.train.loss_name,
-    scheduler = cfg.train.scheduler,                   
+    loss_name = cfg.train.loss_name,                  
     compute_metrics=compute_metrics,      # define metrics function
     num_training_steps = 3 * len(train_dataset),
     callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
