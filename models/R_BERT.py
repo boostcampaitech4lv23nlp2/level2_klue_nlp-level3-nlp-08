@@ -67,7 +67,7 @@ class RBERT(nn.Module):
         e2_h = self.entity_fc_layer(e2_h)
 
         # Concat -> fc_layer
-        concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=-1)
+        concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=-1) 
         logits = self.label_classifier(concat_h)
 
         return {'logits':logits}
