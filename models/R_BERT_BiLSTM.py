@@ -29,10 +29,11 @@ class RBERT(nn.Module):
 
         self.lstm= nn.LSTM(input_size= self.hidden_size, hidden_size= self.hidden_size, num_layers= 2, dropout= 0.2,
                            batch_first= True, bidirectional= True)
-        self.cls_fc_layer = FCLayer(self.hidden_size, self.hidden_size) # 768 , 768 
-        self.entity_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768
+        #self.cls_fc_layer = FCLayer(self.hidden_size, self.hidden_size) # 768 , 768 
+        #self.entity_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768
+        
         self.label_classifier = FCLayer(
-            self.hidden_size * 3,
+            self.hidden_size * 2,
             30,
             use_activation=False,
         )
@@ -58,21 +59,28 @@ class RBERT(nn.Module):
         inputs = {'input_ids':batch.get('input_ids'),'token_type_ids':batch.get('token_type_ids'),'attention_mask':batch.get('attention_mask')}
         outputs = self.Backbone(**inputs)  # sequence_output, pooled_output, (hidden_states), (attentions)
         sequence_output = outputs[0]
-        pooled_output = outputs[1]  # [CLS]
+
+        pooled_output = outputs[1].unsqueeze(1)  # [CLS] -> B, 1, H
+        e1_h = self.entity_average(sequence_output, e1_mask).unsqueeze(1) # B ,1 ,H
+        e2_h = self.entity_average(sequence_output, e2_mask).unsqueeze(1) # B ,1 ,H
+
+        concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=1) #B , 3, H
         # LSTM
-        lstm_outputs,(lstm_hidden_state,lstm_cell_state) = self.lstm(sequence_output)
+        lstm_outputs,(lstm_hidden_state,lstm_cell_state) = self.lstm(concat_h)
         #print(lstm_outputs.shape)
-        # Average
-        e1_h = self.entity_average(lstm_outputs, e1_mask)
-        e2_h = self.entity_average(lstm_outputs, e2_mask)
+
+        
         #print(e1_h.shape,e2_h.shape)
+
         # Dropout -> tanh -> fc_layer (Share FC layer for e1 and e2)
-        pooled_output = self.cls_fc_layer(pooled_output)
-        e1_h = self.entity_fc_layer(e1_h)
-        e2_h = self.entity_fc_layer(e2_h)
+        #pooled_output = self.cls_fc_layer(pooled_output)
+        #e1_h = self.entity_fc_layer(e1_h)
+        #e2_h = self.entity_fc_layer(e2_h)
+        
 
         # Concat -> fc_layer
-        concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=-1)
+        concat_h = torch.cat([lstm_hidden_state[0],lstm_hidden_state[1]], dim=-1)
+
         logits = self.label_classifier(concat_h)
 
         return {'logits':logits}

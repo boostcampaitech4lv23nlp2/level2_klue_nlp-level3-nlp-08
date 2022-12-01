@@ -28,13 +28,19 @@ class RBERT(nn.Module):
         self.num_labels = 30
         self.cnn_layers = nn.ModuleList([nn.Conv1d(in_channels=self.hidden_size,out_channels=self.hidden_size,kernel_size=3,padding=1),
                                          nn.Conv1d(in_channels=self.hidden_size,out_channels=self.hidden_size,kernel_size=5,padding=2)])
-        self.cls_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768 
-        self.entity_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768
+        #self.cls_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768 
+        #self.entity_fc_layer = FCLayer(self.hidden_size*2, self.hidden_size) # 768 , 768
+        self.pre_label_classifier = FCLayer(
+            self.hidden_size * 6,
+            self.hidden_size*3,
+            use_activation=True,
+        )
         self.label_classifier = FCLayer(
             self.hidden_size * 3,
             30,
             use_activation=False,
         )
+
 
     @staticmethod
     def entity_average(hidden_output, e_mask):
@@ -70,12 +76,14 @@ class RBERT(nn.Module):
         e2_h = self.entity_average(sequence_output, e2_mask)
         #print(e1_h.shape,e2_h.shape)
         # Dropout -> tanh -> fc_layer (Share FC layer for e1 and e2)
-        pooled_output = self.cls_fc_layer(pooled_output)
-        e1_h = self.entity_fc_layer(e1_h)
-        e2_h = self.entity_fc_layer(e2_h)
+        #pooled_output = self.cls_fc_layer(pooled_output)
+        #e1_h = self.entity_fc_layer(e1_h)
+        #e2_h = self.entity_fc_layer(e2_h)
 
         # Concat -> fc_layer
         concat_h = torch.cat([pooled_output, e1_h, e2_h], dim=-1)
-        logits = self.label_classifier(concat_h)
+        logits = self.pre_label_classifier(concat_h)
+        logits = self.label_classifier(logits)
+
 
         return {'logits':logits}

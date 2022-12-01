@@ -77,7 +77,7 @@ class Preprocess:
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=160,
+            max_length=256,
             add_special_tokens=True,
             )
       else:
@@ -86,7 +86,7 @@ class Preprocess:
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=160,
+            max_length=256,#160
             add_special_tokens=True,
             )
       return tokenized_sentences,sub_list,obj_list
@@ -103,7 +103,7 @@ class Preprocess:
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=160,
+            max_length=256,
             add_special_tokens=True,
             )
       else:
@@ -112,7 +112,7 @@ class Preprocess:
             return_tensors="pt",
             padding="max_length",
             truncation=True,
-            max_length=160,
+            max_length=256,
             add_special_tokens=True,
             )
     
