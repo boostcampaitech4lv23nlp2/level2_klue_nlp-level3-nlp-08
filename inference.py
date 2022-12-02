@@ -39,12 +39,35 @@ def inference(cfg, model, tokenized_sent, device):
           attention_mask=data['attention_mask'].to(device),
           token_type_ids=data['token_type_ids'].to(device)
           )
+      elif cfg.model.type == 'entity':
+        outputs = model(
+          input_ids=data['input_ids'].to(device),
+          attention_mask=data['attention_mask'].to(device),
+          token_type_ids=data['token_type_ids'].to(device),
+          entity_loc_ids=data['entity_loc_ids'].to(device)
+                    )
+      elif cfg.model.type == 'type':
+        outputs = model(
+          input_ids=data['input_ids'].to(device),
+          attention_mask=data['attention_mask'].to(device),
+          token_type_ids=data['token_type_ids'].to(device),
+          entity_loc_ids=data['entity_loc_ids'].to(device),
+          entity_type_ids=data['entity_type_ids'].to(device)
+                    )
+      elif cfg.model.type == 'specific':
+        outputs = model(
+          input_ids=data['input_ids'].to(device),
+          attention_mask=data['attention_mask'].to(device),
+          token_type_ids=data['token_type_ids'].to(device),
+          entity_loc_ids=data['entity_loc_ids'].to(device)
+                    )
       else:
         outputs = model(
             input_ids=data['input_ids'].to(device),
             attention_mask=data['attention_mask'].to(device),
             token_type_ids=data['token_type_ids'].to(device)
             )
+
       if cfg.model.type == 'CNN':
         logits = outputs.get('logits')
       elif cfg.model.type == 'base' or cfg.model.type == 'xlm':
@@ -53,6 +76,13 @@ def inference(cfg, model, tokenized_sent, device):
         logits = outputs.get('logits')
       elif cfg.model.type == 'rbert':
         logits = outputs.get('logits')
+      elif cfg.model.type == 'entity':
+        logits = outputs['logits']
+      elif cfg.model.type == 'type':
+        logits = outputs['logits']
+      elif cfg.model.type == 'specific':
+        logits = outputs['logits']
+
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
     logits = logits.detach().cpu().numpy()
     result = np.argmax(logits, axis=-1)
@@ -108,13 +138,18 @@ def main(cfg):
       model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == 'CNN':
     model = auto_models.CNN_Model(MODEL_NAME)
-  elif cfg.model.type == 'enitity':
+  elif cfg.model.type =='specific':
+    model = auto_models.SpecificModel(MODEL_NAME)
+  elif cfg.model.type == 'enitity' or cfg.model.type == 'type':
     if cfg.model.model_name == "klue/bert-base":
       config = AutoConfig.from_pretrained(MODEL_NAME)
       model = custom_model.BertForSequenceClassification(config)
     elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
       config = AutoConfig.from_pretrained(MODEL_NAME)
       model = custom_model.ElectraForSequenceClassification(config)
+    elif cfg.model.model_name == "klue/roberta-large":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.RobertaForSequenceClassification(config)
   elif cfg.model.type == 'xlm':
     model = auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type =='rbert':

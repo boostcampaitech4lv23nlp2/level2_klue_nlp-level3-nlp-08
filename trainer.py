@@ -33,6 +33,15 @@ class RE_Trainer(Trainer):
                         attention_mask=inputs['attention_mask'], entity_ids=inputs['entity_ids'])
             logits = outputs['outputs']
 
+        elif self.model_type == 'type':
+          outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'],
+                      attention_mask=inputs['attention_mask'], entity_loc_ids=inputs['entity_loc_ids'], entity_type_ids=inputs['entity_type_ids'])
+          logits = outputs['logits']
+
+        elif self.model_type == 'specific':
+          outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'], attention_mask=inputs['attention_mask'], entity_loc_ids=inputs['entity_loc_ids'])
+          logits = outputs['logits']
+
         elif self.model_type=='rbert':
             sub_mask = inputs['sub_ids']
             obj_mask = inputs['obj_ids']

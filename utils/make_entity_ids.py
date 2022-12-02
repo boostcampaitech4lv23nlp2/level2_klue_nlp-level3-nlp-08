@@ -21,7 +21,7 @@ def make_ent_ids(tokenizer,data):
 
     return sub_ids,obj_ids
 
-def make_entity_ids(self, sentence, tokenizer):
+def make_entity_ids(sentence, tokenizer):
 
     entity_loc_ids = [0] * 256
     entity_type_ids = [0] * 256
