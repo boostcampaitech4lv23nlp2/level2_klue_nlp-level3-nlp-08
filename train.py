@@ -14,7 +14,7 @@ from transformers import (
   RobertaForSequenceClassification, 
   BertTokenizer,
   get_scheduler,
-  EarlyStoppingCallback
+  EarlyStoppingCallback,
 )
 from load_data import *
 from utils.augmentation import *
@@ -46,8 +46,8 @@ def train():
   dev_label = label_to_num(dev_dataset['label'].values)
 
   print('Data Tokenizing...')
-  tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer)
-  tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer)
+  tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer, type=cfg.model.type)
+  tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer, type=cfg.model.type)
 
   RE_train_dataset = RE_Dataset(tokenized_train, train_label)
   RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
@@ -98,7 +98,8 @@ def train():
     disable_tqdm = False
   )
   
-  trainer = RE_Trainer(
+  if cfg.model_type == 'xlm':
+    trainer = RE_Trainer_xlm(
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
@@ -109,7 +110,18 @@ def train():
     #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
     model_type = cfg.model.type
   )
-
+  else:
+    trainer = RE_Trainer(
+    model=model,                         # the instantiated 🤗 Transformers model to be trained
+    args=training_args,                  # training arguments, defined above
+    train_dataset=RE_train_dataset,      # training dataset
+    eval_dataset=RE_dev_dataset,       # evaluation dataset
+    loss_name = cfg.train.loss_name,                  
+    compute_metrics=compute_metrics,      # define metrics function
+    num_training_steps = 3 * len(train_dataset),
+    #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
+    model_type = cfg.model.type
+  )
   # train model
   wandb.watch(model)
   trainer.train()
