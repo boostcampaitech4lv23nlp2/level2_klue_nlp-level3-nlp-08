@@ -11,7 +11,7 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 from omegaconf import OmegaConf
-from models import *
+from models import auto_models,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM,custom_embedding,custom_model
 import datetime
 from utils.metric import label_to_num
 from pytz import timezone
@@ -33,16 +33,26 @@ def inference(cfg, model, tokenized_sent, device):
           input_ids=data['input_ids'].to(device),
           attention_mask=data['attention_mask'].to(device),
           )
-      else:
-        outputs = model(
+      elif cfg.model.type == 'rbert':
+        outputs = model (data['sub_ids'].to(device),data['obj_ids'].to(device),
           input_ids=data['input_ids'].to(device),
           attention_mask=data['attention_mask'].to(device),
           token_type_ids=data['token_type_ids'].to(device)
           )
-    if cfg.model.type == 'CNN':
-      logits = outputs.get('logits')
-    elif cfg.model.type == 'base' or cfg.model.type == 'xlm':
-      logits = outputs[0]
+      else:
+        outputs = model(
+            input_ids=data['input_ids'].to(device),
+            attention_mask=data['attention_mask'].to(device),
+            token_type_ids=data['token_type_ids'].to(device)
+            )
+      if cfg.model.type == 'CNN':
+        logits = outputs.get('logits')
+      elif cfg.model.type == 'base' or cfg.model.type == 'xlm':
+        logits = outputs[0]
+      elif cfg.model.type == 'base':
+        logits = outputs.get('logits')
+      elif cfg.model.type == 'rbert':
+        logits = outputs.get('logits')
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
     logits = logits.detach().cpu().numpy()
     result = np.argmax(logits, axis=-1)
@@ -73,14 +83,18 @@ def load_test_dataset(dataset_dir, tokenizer):
   test_dataset = dataset.load_data(dataset_dir)
   test_label = list(map(int,test_dataset['label'].values))
   # tokenizing dataset
-  tokenized_test = dataset.tokenized_dataset(test_dataset, tokenizer)
-  return test_dataset['id'], tokenized_test, test_label
+  if cfg.model.type == 'rbert':
+    tokenized_test,sub_list,obj_list = dataset.tokenized_dataset(test_dataset, tokenizer, cfg.model.type,cfg.data.mode)
+    return test_dataset['id'], tokenized_test,sub_list,obj_list, test_label
+  else:
+    tokenized_test = dataset.tokenized_dataset(test_dataset, tokenizer, cfg.model.type,cfg.data.mode)
+    return test_dataset['id'], tokenized_test, test_label
 
 def main(cfg):
   """
     주어진 dataset csv 파일과 같은 형태일 경우 inference 가능한 코드입니다.
   """
-  device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+  device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu') #'cuda:0' if torch.cuda.is_available() else 
   # load tokenizer
   Tokenizer_NAME = cfg.model.model_name
   tokenizer = AutoTokenizer.from_pretrained(Tokenizer_NAME)
@@ -88,7 +102,10 @@ def main(cfg):
   ## load my model
   MODEL_NAME = cfg.model.model_name # model dir.
   if cfg.model.type == 'base':
-    model = auto_models.RE_Model(MODEL_NAME)
+    if cfg.model.type2 == "lstm":
+      model = RoBERTa_BiLSTM.RoBERTa_BiLSTM(MODEL_NAME)
+    else:
+      model =  auto_models.RE_Model(MODEL_NAME)
   elif cfg.model.type == 'CNN':
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == 'enitity':
@@ -100,24 +117,38 @@ def main(cfg):
       model = custom_model.ElectraForSequenceClassification(config)
   elif cfg.model.type == 'xlm':
     model = auto_models.RE_Model(MODEL_NAME)
+  elif cfg.model.type =='rbert':
+    if cfg.model.type2 == 'lstm':
+      model = R_BERT_BiLSTM.RBERT(MODEL_NAME)
+    elif cfg.model.type2 == 'cnn':
+      model = R_BERT_CNN.RBERT(MODEL_NAME)
+    else:
+      model = R_BERT.RBERT(MODEL_NAME)
 
   if isinstance(model, PreTrainedModel):
     model = model.from_pretrained('checkpoint', num_labels=30)
   else:
     best_state_dict= torch.load(cfg.test.model_dir)
     model.load_state_dict(best_state_dict)
-    
+
+  
   model.parameters
   model.to(device)
 
   ## load test datset
   test_dataset_dir = cfg.path.predict_path
-  test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
-  Re_test_dataset = RE_Dataset(test_dataset ,test_label)
+  if cfg.model.type == 'rbert':
+    test_id, test_dataset,sub_list,obj_list,test_label = load_test_dataset(test_dataset_dir, tokenizer)
+    Re_test_dataset = RBERT_Dataset(test_dataset,test_label,sub_list,obj_list)
+
+  else:
+    test_id, test_dataset, test_label = load_test_dataset(test_dataset_dir, tokenizer)
+    Re_test_dataset = RE_Dataset(test_dataset ,test_label)
 
   ## predict answer
   pred_answer, output_prob = inference(cfg, model, Re_test_dataset, device) # model에서 class 추론
   pred_answer = num_to_label(pred_answer) # 숫자로 된 class를 원래 문자열 라벨로 변환.
+
   
   ## make csv file with predicted answer
   #########################################################
@@ -127,17 +158,22 @@ def main(cfg):
   output.to_csv(cfg.test.prediction, index=False) # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
   #### 필수!! ##############################################
   print('---- Finish! ----')
+  
   val_process = Preprocess(cfg.path.dev_path)
   dev_dataset = val_process.data
   dev_label = label_to_num(dev_dataset['label'].values)
-  tokenized_dev = val_process.tokenized_dataset(dev_dataset, tokenizer)
-  RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+  if cfg.model.type == 'rbert':
+    tokenized_dev, sub_mask, obj_mask = val_process.tokenized_dataset(dev_dataset, tokenizer, cfg.model.type , cfg.data.mode)
+    RE_dev_dataset = RBERT_Dataset(tokenized_dev, dev_label, sub_mask, obj_mask)
+  else:
+    tokenized_dev = val_process.tokenized_dataset(dev_dataset, tokenizer)
+    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
   
   _, output_prob = inference(cfg, model, RE_dev_dataset, device) # model에서 class 추론
   result = [' '.join(map(lambda x: f'{x:.3f}', out)) for out in output_prob]
   dev_dataset['output_prob'] = result
   time = get_time()
-  dev_dataset.to_csv(f"EDA/output/{cfg.exp.exp_name}_{time}.csv", index=False)
+  dev_dataset.to_csv(f"./EDA/output/{cfg.exp.exp_name}_{time}.csv", index=False)
   print('----csv generate Finish! ----')
   
 def get_time():

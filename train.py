@@ -20,7 +20,7 @@ from load_data import *
 from utils.augmentation import *
 import random
 from utils.metric import *
-from models import *
+from models import auto_models,custom_embedding,custom_model,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM
 from trainer import *
 import yaml
 from omegaconf import OmegaConf
@@ -46,11 +46,24 @@ def train():
   dev_label = label_to_num(dev_dataset['label'].values)
 
   print('Data Tokenizing...')
-  tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer, type=cfg.model.type)
-  tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer, type=cfg.model.type)
+  print(f'Selected Tokenize Type: {cfg.model.type}')
+  if cfg.model.type == "rbert":
+    tokenized_train,train_sub_ids,train_obj_ids = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type=cfg.model.type,test=cfg.data.mode)
+    tokenized_dev,dev_sub_ids,dev_obj_ids = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = cfg.model.type,test=cfg.data.mode)
+    RE_train_dataset = RBERT_Dataset(tokenized_train, train_label,train_sub_ids,train_obj_ids)
+    RE_dev_dataset = RBERT_Dataset(tokenized_dev, dev_label,dev_sub_ids,dev_obj_ids)
 
-  RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-  RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+  elif cfg.model.type == "entity":
+    tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type='entity',test=cfg.data.mode)
+    tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = 'entity',test=cfg.data.mode)
+    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+
+  else:
+    tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type=cfg.model.type,test=cfg.data.mode)
+    tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = cfg.model.type,test=cfg.data.mode)
+    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -58,7 +71,11 @@ def train():
   if cfg.model.type == "CNN":
     model = auto_models.CNN_Model(MODEL_NAME)
   elif cfg.model.type == "base":
-    model =  auto_models.RE_Model(MODEL_NAME)
+    if cfg.model.type2 == "lstm":
+      model = RoBERTa_BiLSTM.RoBERTa_BiLSTM(MODEL_NAME)
+    else:
+      model =  auto_models.RE_Model(MODEL_NAME)
+
   elif cfg.model.type == "entity":
     if cfg.model.model_name == "klue/bert-base":
       config = AutoConfig.from_pretrained(MODEL_NAME)
@@ -66,9 +83,17 @@ def train():
     elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
       config = AutoConfig.from_pretrained(MODEL_NAME)
       model = custom_model.ElectraForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+
   elif cfg.model.type == 'xlm':
     model = auto_models.RE_Model(MODEL_NAME)
 
+  elif cfg.model.type == "rbert":
+    if cfg.model.type2 == "lstm":
+      model = R_BERT_BiLSTM.RBERT(MODEL_NAME)
+    elif cfg.model.type2 == "cnn":
+      model = R_BERT_CNN.RBERT(MODEL_NAME)
+    else:
+      model = R_BERT.RBERT(MODEL_NAME)
   model.parameters
   model.to(device)
   
@@ -116,19 +141,20 @@ def train():
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
     eval_dataset=RE_dev_dataset,       # evaluation dataset
-    loss_name = cfg.train.loss_name,                  
+    loss_name = cfg.train.loss_name,
+    scheduler=cfg.train.scheduler,                  
     compute_metrics=compute_metrics,      # define metrics function
     num_training_steps = 3 * len(train_dataset),
-    #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
     model_type = cfg.model.type
   )
   # train model
   wandb.watch(model)
   trainer.train()
-  try:
-    model.save_pretrained(cfg.test.model_dir)
-  except:
-    torch.save(model.state_dict(),cfg.test.model_dir)  
+  #try:
+  #  model.save_pretrained(cfg.test.model_dir)
+  #except:
+  #  torch.save(model.state_dict(),cfg.test.model_dir)  
 
 def main():
   wandb_cfg = dict()

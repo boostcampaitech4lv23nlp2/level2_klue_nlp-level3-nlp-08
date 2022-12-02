@@ -4,8 +4,8 @@ from loss import *
 
 class RE_Trainer(Trainer):
     def __init__(self, loss_name, 
-                       scheduler,
-                       num_training_steps,model_type,
+                      scheduler,
+                      num_training_steps,model_type,
                        *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_name= loss_name
@@ -30,8 +30,20 @@ class RE_Trainer(Trainer):
 
         elif self.model_type == 'entity':
             outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'],
-                        attention_mask=inputs['attention_mask'])
-            logits = outputs['logits']
+                        attention_mask=inputs['attention_mask'], entity_ids=inputs['entity_ids'])
+            logits = outputs['outputs']
+
+        elif self.model_type=='rbert':
+            sub_mask = inputs['sub_ids']
+            obj_mask = inputs['obj_ids']
+            inputs = {'input_ids':inputs.get('input_ids'),'token_type_ids':inputs.get('token_type_ids'),'attention_mask':inputs.get('attention_mask')}
+            outputs = model(sub_mask,obj_mask,**inputs)
+            logits = outputs.get("logits")
+        
+        elif self.model_type == 'xlm':
+            inputs = {'input_ids':inputs.get('input_ids'),'attention_mask':inputs.get('attention_mask'),'labels':inputs.get('labels')}
+            outputs = model(**inputs)
+            logits = outputs.get("logits")
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
           loss_fct = nn.CrossEntropyLoss()
