@@ -171,6 +171,8 @@ class NLPAnalyzer():
             for idx, row in df.iterrows():
                 prob_str = row[self.anno_pred]
                 labels_probs[idx] = np.array(prob_str.split())
+                # no_relation 제거 실험이 필요할 경우 아래 코드 주석 해제
+                # labels_probs[idx][0] = 0
                 # TODO : 간결하게 줄이는 법?
                 labels_confidence[idx] = labels_probs[idx, df['num_label'].iloc[idx]]
             preds = np.argmax(labels_probs, axis=-1)
@@ -180,7 +182,7 @@ class NLPAnalyzer():
             df['pred'] = self.num_to_label(df['num_pred']) # str 표현된 예측값
             df['pred.confidence'] = np.max(labels_probs, axis=-1) # 예측값에 대한 confidence
             df['label.confidence'] = labels_confidence # 라벨값에 대한 confidence
-            df['answer'] = np.where(df['pred'] == df['label'], 1, 0) # 정답 여부
+            df['answer'] = np.where(df['num_pred'] == df['num_label'], 1, 0) # 정답 여부
 
         for name in self.anno_sentence:
             # 공백 개수
@@ -269,7 +271,7 @@ class NLPAnalyzer():
         for idx, th in zip(index_list, [f'~{th_list[0]}'] + th_list):
             if df[:][idx].shape[0] == 0:
                 print(f'{th} : no data.')
-                continue
+                #continue
             row = dict()
             row['count'] = df[:][idx].shape[0]
             for col in show_cols:
@@ -351,7 +353,7 @@ class NLPAnalyzer():
             fig.show()
         
     # doc 미완성
-    def show_group_stat_bar_plot(self, xy_col, mode='mean', sort=None):
+    def show_group_stat_bar_plot(self, xy_col, mode='mean', title=None, sort=None):
         """_summary_
         doc 미완성.
         xy_col[0]는 num_label 또는 num_pred만 가능.       
@@ -377,10 +379,12 @@ class NLPAnalyzer():
                         name=df_name
                         ))
         if mode == 'count':
-            fig.update_layout(title=f'condtion:{xy_col[0]} plot. [mode:{mode}]', barmode='group', 
+            title = title if title else f'condtion:{xy_col[0]} plot. [mode:{mode}]'
+            fig.update_layout(title=title, barmode='group', 
                             xaxis_tickangle=-45,  xaxis={'categoryorder':sort})
         else:
-            fig.update_layout(title=f'{xy_col[1]} plot. [condtion:{xy_col[0]}, mode:{mode}]', barmode='group', 
+            title = title if title else f'{xy_col[1]} plot. [condtion:{xy_col[0]}, mode:{mode}]'
+            fig.update_layout(title=title, barmode='group', 
                             xaxis_tickangle=-45,  xaxis={'categoryorder':sort})
         fig.update_xaxes(tickangle=45)
         fig.show()
@@ -469,15 +473,19 @@ def filtering(analyzer:NLPAnalyzer, target_col, query, ref_df_name=None, mode='c
         filter = new_analyzer.df_dict[ref_df_name][target_col].str.contains(query)
         id_list =  new_analyzer.df_dict[ref_df_name][filter]['id']
         
-    if mode == 'contain':
-        for df_name in new_analyzer.df_dict.keys():
-            if ref_df_name:
-                filter = new_analyzer.df_dict[df_name]['id'].isin(id_list)
-                new_analyzer.df_dict[df_name] = new_analyzer.df_dict[df_name][filter]
-            else:
-                filter = new_analyzer.df_dict[df_name][target_col].str.contains(query)
-                new_analyzer.df_dict[df_name] = new_analyzer.df_dict[df_name][filter]
-    else:
-        raise ValueError
+
+    for df_name in new_analyzer.df_dict.keys():
+        if ref_df_name:
+            filter = new_analyzer.df_dict[df_name]['id'].isin(id_list)         
+        else:
+            filter = new_analyzer.df_dict[df_name][target_col].str.contains(query)
+        
+        if mode == 'contain':
+            new_analyzer.df_dict[df_name] = new_analyzer.df_dict[df_name][filter]
+        elif  mode == 'exclude':
+            new_analyzer.df_dict[df_name] = new_analyzer.df_dict[df_name][~filter]
+        else:
+            raise ValueError
+
     
     return new_analyzer
