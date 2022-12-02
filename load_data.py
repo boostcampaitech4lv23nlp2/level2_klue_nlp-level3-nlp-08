@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import torch
 import tqdm
+from utils import make_entity_ids
 import numpy as np
 
 
@@ -15,6 +16,24 @@ class RE_Dataset(torch.utils.data.Dataset):
   def __getitem__(self, idx):
     item = {key: val[idx].clone().detach() for key, val in self.pair_dataset.items()}
     item['labels'] = torch.tensor(self.labels[idx])
+    return item
+
+  def __len__(self):
+    return len(self.labels)
+
+class RBERT_Dataset(torch.utils.data.Dataset):
+  """ Dataset 구성을 위한 class."""
+  def __init__(self, pair_dataset, labels,sub_ids,obj_ids):
+    self.pair_dataset = pair_dataset
+    self.labels = labels
+    self.sub_ids = sub_ids
+    self.obj_ids = obj_ids
+
+  def __getitem__(self, idx):
+    item = {key: val[idx].clone().detach() for key, val in self.pair_dataset.items()}
+    item['labels'] = torch.tensor(self.labels[idx])
+    item['sub_ids'] = torch.tensor(self.sub_ids[idx])
+    item['obj_ids'] = torch.tensor(self.obj_ids[idx])
     return item
 
   def __len__(self):
@@ -39,55 +58,105 @@ class Preprocess:
         
     return num_label
   
-  def tokenized_dataset(self, dataset, tokenizer):
-    print(dataset['sentence'].iloc[0:10])
+  def tokenized_dataset(self, dataset, tokenizer,type=False,test=False):
+    if type == 'rbert':
+      sub_list = []
+      obj_list = []
 
-    entity_loc_ids = []
-    entity_type_ids = []
+      for sent in dataset['sentence']:
+        sub_id,obj_id = make_entity_ids.make_ent_ids(tokenizer,sent)
+        sub_list.append(sub_id)
+        obj_list.append(obj_id)
+      if test:
+        tmp = []
+        for e01,e02,e03,e04 in zip(dataset['subject_entity'],dataset['object_entity'],dataset['subject_type'],dataset['object_type']):
+          ex = f"@*{e03}*{e01}@ 와(과) #^{e04}^{e02}# 의 관계"
+          tmp.append(ex)
+        tokenized_sentences = tokenizer(
+            tmp,
+            list(dataset['sentence']),
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            add_special_tokens=True,
+            )
+      else:
+        tokenized_sentences = tokenizer(
+            list(dataset['sentence']),
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,#160
+            add_special_tokens=True,
+            )
+      return tokenized_sentences,sub_list,obj_list
 
-    for sent, sub_type, obj_type in zip(dataset['sentence'], dataset['subject_type'], dataset['object_type']):
-      current_entity_loc_ids, current_entity_type_ids = self.make_entity_ids(sentence=sent, tokenizer=tokenizer)
-      entity_loc_ids.append(current_entity_loc_ids)
-      entity_type_ids.append(current_entity_type_ids)
+    elif type == 'entity':
+      print(dataset['sentence'].iloc[0:10])
 
-    tokenized_sentences = tokenizer(
+      entity_loc_ids = []
+      entity_type_ids = []
+
+      for sent, sub_type, obj_type in zip(dataset['sentence'], dataset['subject_type'], dataset['object_type']):
+        current_entity_loc_ids, current_entity_type_ids = make_entity_ids.make_entity_ids(sentence=sent, tokenizer=tokenizer)
+        entity_loc_ids.append(current_entity_loc_ids)
+        entity_type_ids.append(current_entity_type_ids)
+
+      tokenized_sentences = tokenizer(
+          list(dataset['sentence']),
+          return_tensors="pt",
+          padding="max_length",
+          truncation=True,
+          max_length=256,
+          add_special_tokens=True,
+          )
+        
+      tokenized_sentences['entity_loc_ids'] = torch.LongTensor(entity_loc_ids)
+      tokenized_sentences['entity_type_ids'] = torch.LongTensor(entity_type_ids)
+      return tokenized_sentences
+      
+    elif type == 'xlm':
+      concat_entity = []
+      for e01, e02 in zip(dataset['subject_entity'], dataset['object_entity']):
+        temp = ''
+        temp = e01 + '[SEP]' + e02
+        concat_entity.append(temp)
+      
+      tokenized_sentences = tokenizer(
+        concat_entity,
         list(dataset['sentence']),
         return_tensors="pt",
-        padding="max_length",
+        padding=True,
         truncation=True,
         max_length=256,
         add_special_tokens=True,
         )
-        
-    tokenized_sentences['entity_loc_ids'] = torch.LongTensor(entity_loc_ids)
-    tokenized_sentences['entity_type_ids'] = torch.LongTensor(entity_type_ids)
-    return tokenized_sentences
+      return tokenized_sentences
 
-  def make_entity_ids(self, sentence, tokenizer):
-
-    entity_loc_ids = [0] * 256
-    entity_type_ids = [0] * 256
-
-    type_to_num={
-        '사람': 1,
-        '조직': 2,
-        '날짜': 3,
-        '장소': 4,
-        '단어': 5,
-        '숫자': 6,
-      }
-
-    tokenized_sentence = tokenizer.tokenize(sentence, padding="max_length", truncation=True, max_length=256, add_special_tokens=True)
-    tokenized_sentence = np.array(tokenized_sentence)
-    sub_indices = np.where(tokenized_sentence == '@')[0]
-    sub_type_indices = np.where(tokenized_sentence == '*')[0]
-    obj_indices = np.where(tokenized_sentence == '#')[0]
-    obj_type_indices = np.where(tokenized_sentence == '^')[0]
-
-    entity_loc_ids[sub_type_indices[-1]+1: sub_indices[-1]] = [1] * (sub_indices[-1] - sub_type_indices[-1]-1)
-    entity_loc_ids[obj_type_indices[-1]+1: obj_indices[-1]] = [2] * (obj_indices[-1] - obj_type_indices[-1]-1) 
-
-    entity_type_ids[sub_type_indices[0]+1] = type_to_num[tokenized_sentence[sub_type_indices[0]+1]]
-    entity_type_ids[obj_type_indices[0]+1] = type_to_num[tokenized_sentence[obj_type_indices[0]+1]]
-            
-    return entity_loc_ids, entity_type_ids
+    else:
+      if test:
+        tmp = []
+        for e01,e02,e03,e04 in zip(dataset['subject_entity'],dataset['object_entity'],dataset['subject_type'],dataset['object_type']):
+          ex = f"@*{e03}*{e01}@ 와(과) #^{e04}^{e02}# 의 관계"
+          tmp.append(ex)
+        tokenized_sentences = tokenizer(
+            tmp,
+            list(dataset['sentence']),
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            add_special_tokens=True,
+            )
+      else:
+        tokenized_sentences = tokenizer(
+            list(dataset['sentence']),
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=256,
+            add_special_tokens=True,
+            )
+    
+      return tokenized_sentences
