@@ -58,7 +58,7 @@ def train():
     tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = 'entity',test=cfg.data.mode)
     RE_train_dataset = RE_Dataset(tokenized_train, train_label)
     RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
-    
+
   else:
     tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type=cfg.model.type,test=cfg.data.mode)
     tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = cfg.model.type,test=cfg.data.mode)
@@ -128,7 +128,8 @@ def train():
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,      # training dataset
     eval_dataset=RE_dev_dataset,       # evaluation dataset
-    loss_name = cfg.train.loss_name,                  
+    loss_name = cfg.train.loss_name,
+    scheduler=cfg.train.scheduler,                  
     compute_metrics=compute_metrics,      # define metrics function
     num_training_steps = 3 * len(train_dataset),
     callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],

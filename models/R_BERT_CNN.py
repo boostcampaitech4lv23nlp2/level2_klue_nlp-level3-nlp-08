@@ -69,8 +69,7 @@ class RBERT(nn.Module):
         sequence_output_5 = torch.tanh(self.cnn_layers[1](sequence_output)).transpose(1,2)
         sequence_output = torch.cat([sequence_output_3,sequence_output_5],dim = 2) # B , L , H*2
         # [CLS]
-        pooled_output = sequence_output[:,0,:].squeeze()
-
+        pooled_output = sequence_output[:,0,:]
         # Average
         e1_h = self.entity_average(sequence_output, e1_mask)
         e2_h = self.entity_average(sequence_output, e2_mask)
