@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments, logging
 from torch.utils.data import DataLoader
 from transformers.modeling_utils import PreTrainedModel
 from load_data import *
@@ -16,8 +16,8 @@ import datetime
 from utils.metric import label_to_num
 from pytz import timezone
 
-
-def inference(model, tokenized_sent, device):
+logging.set_verbosity_error()
+def inference(cfg, model, tokenized_sent, device):
   """
     test dataset을 DataLoader로 만들어 준 후,
     batch_size로 나눠 model이 예측 합니다.
@@ -28,14 +28,20 @@ def inference(model, tokenized_sent, device):
   output_prob = []
   for i, data in enumerate(dataloader):  # tqdm
     with torch.no_grad():
-      outputs = model(
+      if cfg.model.type == 'xlm':
+        outputs = model(
+          input_ids=data['input_ids'].to(device),
+          attention_mask=data['attention_mask'].to(device),
+          )
+      else:
+        outputs = model(
           input_ids=data['input_ids'].to(device),
           attention_mask=data['attention_mask'].to(device),
           token_type_ids=data['token_type_ids'].to(device)
           )
     if cfg.model.type == 'CNN':
       logits = outputs.get('logits')
-    elif cfg.model.type == 'base':
+    elif cfg.model.type == 'base' or cfg.model.type == 'xlm':
       logits = outputs[0]
     prob = F.softmax(logits, dim=-1).detach().cpu().numpy()
     logits = logits.detach().cpu().numpy()
@@ -92,6 +98,8 @@ def main(cfg):
     elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
       config = AutoConfig.from_pretrained(MODEL_NAME)
       model = custom_model.ElectraForSequenceClassification(config)
+  elif cfg.model.type == 'xlm':
+    model = auto_models.RE_Model(MODEL_NAME)
 
   if isinstance(model, PreTrainedModel):
     model = model.from_pretrained('checkpoint', num_labels=30)
@@ -108,7 +116,7 @@ def main(cfg):
   Re_test_dataset = RE_Dataset(test_dataset ,test_label)
 
   ## predict answer
-  pred_answer, output_prob = inference(model, Re_test_dataset, device) # model에서 class 추론
+  pred_answer, output_prob = inference(cfg, model, Re_test_dataset, device) # model에서 class 추론
   pred_answer = num_to_label(pred_answer) # 숫자로 된 class를 원래 문자열 라벨로 변환.
   
   ## make csv file with predicted answer
@@ -125,7 +133,7 @@ def main(cfg):
   tokenized_dev = val_process.tokenized_dataset(dev_dataset, tokenizer)
   RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
   
-  _, output_prob = inference(model, RE_dev_dataset, device) # model에서 class 추론
+  _, output_prob = inference(cfg, model, RE_dev_dataset, device) # model에서 class 추론
   result = [' '.join(map(lambda x: f'{x:.3f}', out)) for out in output_prob]
   dev_dataset['output_prob'] = result
   time = get_time()
