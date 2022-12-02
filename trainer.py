@@ -2,7 +2,6 @@ from torch import nn
 from transformers import Trainer, get_scheduler, TrainingArguments
 from loss import *
 
-
 class RE_Trainer(Trainer):
     def __init__(self, loss_name, 
                        scheduler,
@@ -33,10 +32,6 @@ class RE_Trainer(Trainer):
             outputs = model(input_ids=inputs['input_ids'], token_type_ids=inputs['token_type_ids'],
                         attention_mask=inputs['attention_mask'])
             logits = outputs['logits']
-        elif self.model_type == 'xlm':
-            inputs = {'input_ids':inputs.get('input_ids'),'attention_mask':inputs.get('attention_mask'),'labels':inputs.get('labels')}
-            outputs = model(**inputs)
-            logits = outputs.get("logits")
         # compute custom loss (suppose one has 3 labels with different weights)
         if self.loss_name == 'CE':
           loss_fct = nn.CrossEntropyLoss()
@@ -69,3 +64,32 @@ class RE_Trainer(Trainer):
 
       return self.lr_scheduler
 
+class RE_Trainer_xlm(Trainer):
+    def __init__(self, loss_name,
+                      num_training_steps,model_type,
+                      *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loss_name= loss_name
+        self.num_training_steps = num_training_steps
+        self.model_type = model_type
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        torch.cuda.empty_cache()
+        labels = inputs.get("labels")
+
+        inputs = {'input_ids':inputs.get('input_ids'),'attention_mask':inputs.get('attention_mask'),'labels':inputs.get('labels')}
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+
+        # compute custom loss (suppose one has 3 labels with different weights)
+        if self.loss_name == 'CE':
+          loss_fct = nn.CrossEntropyLoss()
+        elif self.loss_name == 'LBS':
+          loss_fct = LabelSmoothingLoss()
+        elif self.loss_name == 'focal':
+          loss_fct = FocalLoss()
+        elif self.loss_name == 'f1':
+          loss_fct = F1Loss()
+          
+        loss = loss_fct(logits.view(-1, 30), labels.view(-1))
+        return (loss, outputs) if return_outputs else loss
