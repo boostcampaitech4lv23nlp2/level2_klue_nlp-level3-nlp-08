@@ -13,10 +13,9 @@ def label_to_num(label):
   return num_label
 
 if __name__ == '__main__':   
-    seed = 2022
-    train_dataset = pd.read_csv("../NLP_dataset/train/train.csv")
+    seed = 42
+    train_dataset = pd.read_csv("../NLP_dataset/train/BT_train.csv")
     train_dataset = train_dataset.sample(frac=1, random_state=seed).reset_index(drop=True)  
-    print(train_dataset.head)
     train_label = label_to_num(train_dataset['label'].values)
 
     split_rate = 10
@@ -25,15 +24,18 @@ if __name__ == '__main__':
 
     train_out = []
     val_out = []
+    val_id = []
     for idx, row in tqdm(list(train_dataset.iterrows())):
         label = train_label[idx]
-        if val_label_counter[label] > 0:
+        row_id = row['id']
+        if val_label_counter[label] > 0 and row_id not in val_id:
             val_out.append(row)
             val_label_counter[label] -= 1
+            val_id.append(row_id)
         else:
             train_out.append(row)
             
     print(len(val_out), len(train_out))
 
-    pd.DataFrame(train_out).to_csv(f"../NLP_dataset/train/train_{seed}_{split_rate}.csv", index=False)
-    pd.DataFrame(val_out).to_csv(f"../NLP_dataset/train/val_{seed}_{split_rate}.csv", index=False)
+    pd.DataFrame(train_out).to_csv(f"../NLP_dataset/train/BT_split_train_final.csv", index=False)
+    pd.DataFrame(val_out).to_csv(f"../NLP_dataset/train/BT_split_valid_final.csv", index=False)

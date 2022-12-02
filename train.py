@@ -2,138 +2,174 @@ import pickle as pickle
 import os
 import pandas as pd
 import torch
-import sklearn
-import numpy as np
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification, Trainer, TrainingArguments, RobertaConfig, RobertaTokenizer, RobertaForSequenceClassification, BertTokenizer
+from transformers import (
+  AutoTokenizer,
+  AutoConfig, 
+  AutoModelForSequenceClassification, 
+  Trainer, 
+  TrainingArguments, 
+  RobertaConfig, 
+  RobertaTokenizer,
+  RobertaModel,
+  RobertaForSequenceClassification, 
+  BertTokenizer,
+  get_scheduler,
+  EarlyStoppingCallback,
+)
 from load_data import *
+from utils.augmentation import *
+import random
+from utils.metric import *
+from models import auto_models,custom_embedding,custom_model,R_BERT,R_BERT_BiLSTM,R_BERT_CNN,RoBERTa_BiLSTM
+from trainer import *
+import yaml
+from omegaconf import OmegaConf
+import argparse
+import wandb
+from transformers import logging
 
-
-def klue_re_micro_f1(preds, labels):
-    """KLUE-RE micro f1 (except no_relation)"""
-    label_list = ['no_relation', 'org:top_members/employees', 'org:members',
-       'org:product', 'per:title', 'org:alternate_names',
-       'per:employee_of', 'org:place_of_headquarters', 'per:product',
-       'org:number_of_employees/members', 'per:children',
-       'per:place_of_residence', 'per:alternate_names',
-       'per:other_family', 'per:colleagues', 'per:origin', 'per:siblings',
-       'per:spouse', 'org:founded', 'org:political/religious_affiliation',
-       'org:member_of', 'per:parents', 'org:dissolved',
-       'per:schools_attended', 'per:date_of_death', 'per:date_of_birth',
-       'per:place_of_birth', 'per:place_of_death', 'org:founded_by',
-       'per:religion']
-    no_relation_label_idx = label_list.index("no_relation")
-    label_indices = list(range(len(label_list)))
-    label_indices.remove(no_relation_label_idx)
-    return sklearn.metrics.f1_score(labels, preds, average="micro", labels=label_indices) * 100.0
-
-def klue_re_auprc(probs, labels):
-    """KLUE-RE AUPRC (with no_relation)"""
-    labels = np.eye(30)[labels]
-
-    score = np.zeros((30,))
-    for c in range(30):
-        targets_c = labels.take([c], axis=1).ravel()
-        preds_c = probs.take([c], axis=1).ravel()
-        precision, recall, _ = sklearn.metrics.precision_recall_curve(targets_c, preds_c)
-        score[c] = sklearn.metrics.auc(recall, precision)
-    return np.average(score) * 100.0
-
-def compute_metrics(pred):
-  """ validation을 위한 metrics function """
-  labels = pred.label_ids
-  preds = pred.predictions.argmax(-1)
-  probs = pred.predictions
-
-  # calculate accuracy using sklearn's function
-  f1 = klue_re_micro_f1(preds, labels)
-  auprc = klue_re_auprc(probs, labels)
-  acc = accuracy_score(labels, preds) # 리더보드 평가에는 포함되지 않습니다.
-
-  return {
-      'micro f1 score': f1,
-      'auprc' : auprc,
-      'accuracy': acc,
-  }
-
-def label_to_num(label):
-  num_label = []
-  with open('NLP_dataset/dict_label_to_num.pkl', 'rb') as f:
-    dict_label_to_num = pickle.load(f)
-  for v in label:
-    num_label.append(dict_label_to_num[v])
-  
-  return num_label
-
+logging.set_verbosity_error()
 def train():
-  # load model and tokenizer
-  # MODEL_NAME = "bert-base-uncased"
-  MODEL_NAME = "klue/bert-base"
-  tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+  seed_fix() #Random seed fix
 
-  # load dataset
-  train_dataset = load_data("NLP_dataset//train/train.csv")
-  # dev_dataset = load_data("../dataset/train/dev.csv") # validation용 데이터는 따로 만드셔야 합니다.
+  MODEL_NAME = cfg.model.model_name #"klue/bert-base"
+  tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+  
+  print('Data Loading...')
+  train_preprocess = Preprocess(cfg.path.train_path)
+  dev_preprocess = Preprocess(cfg.path.dev_path)
+
+  train_dataset = train_preprocess.data
+  dev_dataset = dev_preprocess.data
 
   train_label = label_to_num(train_dataset['label'].values)
-  # dev_label = label_to_num(dev_dataset['label'].values)
+  dev_label = label_to_num(dev_dataset['label'].values)
 
-  # tokenizing dataset
-  tokenized_train = tokenized_dataset(train_dataset, tokenizer)
-  # tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
+  print('Data Tokenizing...')
+  print(f'Selected Tokenize Type: {cfg.model.type}')
+  if cfg.model.type == "rbert":
+    tokenized_train,train_sub_ids,train_obj_ids = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type=cfg.model.type,test=cfg.data.mode)
+    tokenized_dev,dev_sub_ids,dev_obj_ids = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = cfg.model.type,test=cfg.data.mode)
+    RE_train_dataset = RBERT_Dataset(tokenized_train, train_label,train_sub_ids,train_obj_ids)
+    RE_dev_dataset = RBERT_Dataset(tokenized_dev, dev_label,dev_sub_ids,dev_obj_ids)
 
-  # make dataset for pytorch.
-  RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-  # RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+  elif cfg.model.type == "entity":
+    tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type='entity',test=cfg.data.mode)
+    tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = 'entity',test=cfg.data.mode)
+    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+
+  else:
+    tokenized_train = train_preprocess.tokenized_dataset(train_dataset, tokenizer,type=cfg.model.type,test=cfg.data.mode)
+    tokenized_dev = dev_preprocess.tokenized_dataset(dev_dataset, tokenizer,type = cfg.model.type,test=cfg.data.mode)
+    RE_train_dataset = RE_Dataset(tokenized_train, train_label)
+    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-  print(device)
-  # setting model hyperparameter
-  model_config =  AutoConfig.from_pretrained(MODEL_NAME)
-  model_config.num_labels = 30
+  print(f'Selected Model Type: {cfg.model.type}')
+  if cfg.model.type == "CNN":
+    model = auto_models.CNN_Model(MODEL_NAME)
+  elif cfg.model.type == "base":
+    if cfg.model.type2 == "lstm":
+      model = RoBERTa_BiLSTM.RoBERTa_BiLSTM(MODEL_NAME)
+    else:
+      model =  auto_models.RE_Model(MODEL_NAME)
 
-  model =  AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
-  print(model.config)
+  elif cfg.model.type == "entity" or cfg.model.type == "type":
+    if cfg.model.model_name == "klue/bert-base":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.BertForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+    elif cfg.model.model_name == "monologg/koelectra-base-v3-discriminator":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.ElectraForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+    elif cfg.model.model_name == "klue/roberta-large":
+      config = AutoConfig.from_pretrained(MODEL_NAME)
+      model = custom_model.RobertaForSequenceClassification(config).from_pretrained(MODEL_NAME, num_labels=30)
+
+  elif cfg.model.type == 'xlm':
+    model = auto_models.RE_Model(MODEL_NAME)
+
+  elif cfg.model.type == "rbert":
+    if cfg.model.type2 == "lstm":
+      model = R_BERT_BiLSTM.RBERT(MODEL_NAME)
+    elif cfg.model.type2 == "cnn":
+      model = R_BERT_CNN.RBERT(MODEL_NAME)
+    else:
+      model = R_BERT.RBERT(MODEL_NAME)
   model.parameters
   model.to(device)
   
   # 사용한 option 외에도 다양한 option들이 있습니다.
   # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
   training_args = TrainingArguments(
-    output_dir='./results',          # output directory
-    save_total_limit=5,              # number of total save model.
-    save_steps=500,                 # model saving step.
-    num_train_epochs=20,              # total number of training epochs
-    learning_rate=5e-5,               # learning_rate
-    per_device_train_batch_size=16,  # batch size per device during training
-    per_device_eval_batch_size=16,   # batch size for evaluation
-    warmup_steps=500,                # number of warmup steps for learning rate scheduler
-    weight_decay=0.01,               # strength of weight decay
-    logging_dir='./logs',            # directory for storing logs
-    logging_steps=100,              # log saving step.
+    output_dir= f'./results/{cfg.exp.exp_name}',          # output directory
+    save_total_limit=cfg.train.save_total_limit, # number of total save model.
+    save_steps=cfg.train.save_steps,                 # model saving step.
+    num_train_epochs=cfg.train.max_epoch,              # total number of training epochs
+    learning_rate=cfg.train.learning_rate,               # learning_rate
+    per_device_train_batch_size= cfg.train.batch_size,  # batch size per device during training
+    per_device_eval_batch_size= cfg.train.batch_size,   # batch size for evaluation
+    warmup_steps=cfg.train.warmup_steps,                # number of warmup steps for learning rate scheduler
+    weight_decay= cfg.train.weight_decay,               # strength of weight decay
+    logging_dir='./logs/logs_klue-roberta-large',       # directory for storing logs
+    logging_steps=cfg.train.logging_steps,              # log saving step.
     evaluation_strategy='steps', # evaluation strategy to adopt during training
                                 # `no`: No evaluation during training.
                                 # `steps`: Evaluate every `eval_steps`.
                                 # `epoch`: Evaluate every end of epoch.
-    eval_steps = 500,            # evaluation step.
-    load_best_model_at_end = True 
+    eval_steps = cfg.train.eval_steps,            # evaluation step.
+    load_best_model_at_end = True,
+    metric_for_best_model= cfg.train.metric_for_best_model, #eval_loss
+    greater_is_better = True,
+    report_to='wandb',
+    disable_tqdm = False
   )
-  trainer = Trainer(
+  
+  if cfg.model_type == 'xlm':
+    trainer = RE_Trainer_xlm(
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
-    train_dataset=RE_train_dataset,         # training dataset
-    eval_dataset=RE_train_dataset,             # evaluation dataset
-    compute_metrics=compute_metrics         # define metrics function
+    train_dataset=RE_train_dataset,      # training dataset
+    eval_dataset=RE_dev_dataset,       # evaluation dataset
+    loss_name = cfg.train.loss_name,                  
+    compute_metrics=compute_metrics,      # define metrics function
+    num_training_steps = 3 * len(train_dataset),
+    #callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
+    model_type = cfg.model.type
   )
-
+  else:
+    trainer = RE_Trainer(
+    model=model,                         # the instantiated 🤗 Transformers model to be trained
+    args=training_args,                  # training arguments, defined above
+    train_dataset=RE_train_dataset,      # training dataset
+    eval_dataset=RE_dev_dataset,       # evaluation dataset
+    loss_name = cfg.train.loss_name,
+    scheduler=cfg.train.scheduler,                  
+    compute_metrics=compute_metrics,      # define metrics function
+    num_training_steps = 3 * len(train_dataset),
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.train.patience, early_stopping_threshold=0.0)],
+    model_type = cfg.model.type
+  )
   # train model
+  wandb.watch(model)
   trainer.train()
-  model.save_pretrained('./best_model')
-  
+  #try:
+  #  model.save_pretrained(cfg.test.model_dir)
+  #except:
+  #  torch.save(model.state_dict(),cfg.test.model_dir)  
+
 def main():
+  wandb_cfg = dict()
+  for root_key in cfg.keys():
+      for key in cfg[root_key].keys():
+        wandb_cfg[f'{root_key}.{key}'] = cfg[root_key][key]
+  wandb.init(project = cfg.exp.project_name, name=cfg.exp.exp_name, entity='boot4-nlp-08', config=wandb_cfg)
   train()
 
 if __name__ == '__main__':
-
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--config',type=str,default='base_config')
+  args , _ = parser.parse_known_args()
+  cfg = OmegaConf.load(f'./config/{args.config}.yaml')
   main()

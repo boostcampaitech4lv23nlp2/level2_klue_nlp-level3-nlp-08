@@ -6,5 +6,12 @@ __pycache__
 results
 config.yaml
 EDA/output/*
-*.ipynb
 *.csv
+logs
+best_model
+predict
+*.txt
+config/*
+*/playground.ipynb
+playground.ipynb
+*.ipynb
